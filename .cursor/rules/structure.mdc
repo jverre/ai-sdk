@@ -1,0 +1,91 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# AI SDK Project Structure
+
+@src/ai_sdk
+
+The AI SDK is a Python package that provides a unified interface for working with different AI language model providers. The project follows a clean, modular architecture with clear separation of concerns.
+
+## Directory Tree
+```
+src/
+└── ai_sdk/
+├── init.py
+├── core/
+│ ├── init.py
+│ ├── errors.py
+│ ├── generate_text.py
+│ ├── language_model.py
+│ ├── tool_calls.py
+│ ├── types.py
+│ └── utils.py
+├── anthropic/
+│ ├── init.py
+│ ├── chat_model.py
+│ └── provider.py
+└── openai/
+├── init.py
+├── chat_model.py
+└── provider.py
+```
+
+## Directory Structure
+
+### Core Module (@src/ai_sdk/core)
+The core module contains the fundamental components and abstractions of the SDK:
+
+- @src/ai_sdk/core/language_model.py - Base language model interface and abstractions
+- @src/ai_sdk/core/types.py - Core type definitions and data structures
+- @src/ai_sdk/core/errors.py - Error handling and custom exceptions
+- @src/ai_sdk/core/generate_text.py - Text generation utilities and helpers
+- @src/ai_sdk/core/tool_calls.py - Tool calling functionality implementation
+- @src/ai_sdk/core/utils.py - Common utility functions
+
+### Provider-Specific Implementations
+Each AI provider has its own module with consistent structure:
+
+#### Anthropic (@src/ai_sdk/anthropic)
+- @src/ai_sdk/anthropic/chat_model.py - Anthropic-specific chat model implementation
+- @src/ai_sdk/anthropic/provider.py - Anthropic provider configuration and setup
+
+#### OpenAI (@src/ai_sdk/openai)
+- @src/ai_sdk/openai/chat_model.py - OpenAI-specific chat model implementation
+- @src/ai_sdk/openai/provider.py - OpenAI provider configuration and setup
+
+## Development Guidelines
+
+### Project Organization
+1. Keep provider-specific code in respective provider directories
+2. Common functionality belongs in the core module
+3. Use `__init__.py` files for clean public APIs
+4. Follow consistent file naming: lowercase with underscores
+
+### Code Structure
+1. Base classes and interfaces go in core/
+2. Provider-specific implementations inherit from core classes
+3. Keep similar structure across different providers
+4. Use type hints and follow core/types.py definitions
+
+### Adding New Providers
+When adding a new provider:
+1. Create a new directory under ai_sdk/
+2. Include provider.py for configuration
+3. Implement chat_model.py following existing patterns
+4. Update __init__.py with public exports
+
+### Best Practices
+- Maintain consistent error handling using core/errors.py
+- Follow existing patterns for provider implementations
+- Keep provider-specific logic isolated
+- Use core utilities from core/utils.py
+- Implement comprehensive type hints
+
+## Usage
+Reference this structure when:
+- Implementing new providers
+- Adding features to existing providers
+- Working with core functionality
+- Understanding the project organization
