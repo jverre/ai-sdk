@@ -31,14 +31,16 @@ SUPPORTED_MODELS = [
     "o1-mini",
     "o1-preview",
     "o3-mini",
+    "chatgpt-4o-latest"
 ]
 
 SUPPORTED_IMAGE_MODELS = [
-    "gpt-4o-audio-preview",
-    "gpt-4",
-    "gpt-3.5-turbo",
-    "o1-preview",
-    "o3-mini"
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+    "o1",
+    "o1-mini",
+    "chatgpt-4o-latest"
 ]
 
 SUPPORTED_TOOL_MODELS = [
@@ -48,7 +50,17 @@ SUPPORTED_TOOL_MODELS = [
     "gpt-4",
     "gpt-3.5-turbo",
     "o1",
-    "o3-mini",
+    "o3-mini"
+]
+
+SUPPORTED_JSON_MODELS = [
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+    "gpt-4",
+    "gpt-3.5-turbo",
+    "o1",
+    "o3-mini"
 ]
 
 class OpenAIChatModel(LanguageModel):
@@ -103,8 +115,18 @@ class OpenAIChatModel(LanguageModel):
                     "parameters": tool.parameters.model_json_schema()
                 }
             } for tool_name, tool in options.tools.items()]
+        
         if options.seed is not None:
             args["seed"] = options.seed
+
+        if options.response_format is not None:
+            args["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "json_schema",
+                    "schema": options.response_format.model_json_schema()
+                }
+            }
 
         return args, warnings
         
@@ -133,6 +155,16 @@ class OpenAIChatModel(LanguageModel):
         if response_code in [408, 409, 429] or response_code >= 500:
             return True
         
+        return False
+
+    def supports_json_mode(self) -> bool:
+        if self.model_id in SUPPORTED_JSON_MODELS:
+            return True
+        return False
+    
+    def supports_tool_calls(self) -> bool:
+        if self.model_id in SUPPORTED_TOOL_MODELS:
+            return True
         return False
 
     def _convert_tool_calls_to_openai_format(self, tool_calls: list[ToolCallPart]) -> list[Dict[str, Any]]:

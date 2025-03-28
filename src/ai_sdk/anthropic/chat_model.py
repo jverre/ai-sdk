@@ -291,6 +291,14 @@ class AnthropicChatModel(LanguageModel):
         
         return tool_calls
 
+    def supports_json_mode(self) -> bool:
+        return False
+
+    def supports_tool_calls(self) -> bool:
+        if self.model_id in SUPPORTED_TOOL_MODELS:
+            return True
+        return False
+
     def do_generate(self, options: LanguageModelCallOptions) -> LanguageModelCallResult:
         args, warnings = self._get_args(options)
         

@@ -12,6 +12,7 @@ class LanguageModelCallSettings(BaseModel):
     presence_penalty: Optional[float] = None
     frequency_penalty: Optional[float] = None
     seed: Optional[int] = None
+    response_format: Optional[BaseModel] = None
 
 LanguageModelProviderMetadata = Dict[str, Dict[str, Any]]
 
@@ -69,6 +70,12 @@ class LanguageModel:
             raise AttributeError(
                 f"Missing required attributes: {', '.join(missing)}"
             )
+    
+    def supports_json_mode(self) -> bool:
+        pass
+
+    def supports_tool_calls(self) -> bool:
+        pass
 
     def do_generate(self, options: LanguageModelCallOptions) -> LanguageModelCallResult:
         pass

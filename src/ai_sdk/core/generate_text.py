@@ -1,51 +1,11 @@
-from .types import TextResult, Message, Usage, RequestMetadata, ResponseMetadata, AssistantMessage, Tool, ResponseMessage, TextPart, ToolCallPart, ToolResultPart, ToolMessage
+from .types import TextResult, Message, Usage, RequestMetadata, ResponseMetadata, AssistantMessage, Tool, ToolMessage
 from .utils import standardize_messages
-from typing import List, Optional, Dict, Literal, Any, Callable
+from typing import List, Optional, Dict, Literal
 from .language_model import LanguageModel, LanguageModelCallOptions, LanguageModelProviderMetadata
 from .tool_calls import execute_tool_calls
 from .errors import AI_APICallError
+from .convert_response import convert_to_response_messages
 import time
-
-def _to_response_messages(
-    text: Optional[str] = "",
-    tools: Dict[str, Any] = None,
-    tool_calls: List[ToolCallPart] = None,
-    tool_results: List[ToolResultPart] = None,
-    message_id: str = None,
-    generate_message_id: Callable[[], str] = None,
-) -> List[ResponseMessage]:
-    """
-    Converts the result of a generateText call to a list of response messages.
-    """
-    tool_calls = tool_calls or []
-    tool_results = tool_results or []
-    response_messages: List[ResponseMessage] = []
-
-    # Create assistant message
-    content = [
-        TextPart(type="text", text=text),
-        *tool_calls
-    ]
-
-    response_messages.append(
-        AssistantMessage(
-            role="assistant",
-            content=content,
-            id=message_id
-        )
-    )
-
-    # Add tool results if any exist
-    if tool_results:
-        response_messages.append(
-            ToolMessage(
-                role="tool",
-                content=tool_results,
-                id=generate_message_id()
-            )
-        )
-
-    return response_messages
 
 def generate_text(
     model: LanguageModel,
@@ -139,7 +99,7 @@ def generate_text(
         
     final_text = res.text or ''
 
-    response_messages = _to_response_messages(
+    response_messages = convert_to_response_messages(
         final_text,
         tools,
         res.tool_calls,
@@ -150,6 +110,7 @@ def generate_text(
 
     return TextResult(
         text=final_text,
+        finish_reason=res.finish_reason,
         tool_calls=res.tool_calls or [],
         tool_results=tool_results,
         usage=Usage(
@@ -166,5 +127,6 @@ def generate_text(
             body=res.response.body,
             messages=response_messages
         ),
-        warnings=res.warnings
+        warnings=res.warnings,
+        provider_metadata=res.provider_metadata
     )
