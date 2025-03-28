@@ -1,0 +1,57 @@
+name: Build and Publish Package
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Get version from tag
+      id: get_version
+      run: |
+        # Strip the 'v' prefix from tag and store as output
+        echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Update version in __init__.py
+      run: |
+        # Using sed to replace the version line in __init__.py
+        sed -i "s/__version__ = .*/__version__ = \"${{ steps.get_version.outputs.VERSION }}\"/" src/ai_sdk/__init__.py
+    
+    - name: Install uv
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+    
+    - name: Install dependencies
+      run: |
+        uv pip install build twine
+        uv pip install -e ".[dev]"
+    
+    - name: Run tests
+      run: |
+        uv pip install pytest
+        pytest
+    
+    - name: Build package
+      run: |
+        uv pip install build
+        python -m build
+    
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        twine check dist/*
+        twine upload dist/*
