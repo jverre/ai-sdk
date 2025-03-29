@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from .types import Tool, ObjectResult
 import json
 
-def _parse_respones(object_generation_mode: str, res: LanguageModelCallResult, schema: BaseModel) -> BaseModel:
+def _parse_responses(object_generation_mode: str, res: LanguageModelCallResult, schema: BaseModel) -> BaseModel:
     if object_generation_mode == "json" or object_generation_mode == "text":
         if res.text:
             try:
@@ -61,7 +61,7 @@ def _parse_respones(object_generation_mode: str, res: LanguageModelCallResult, s
 
 def _inject_json_schema(prompt: Optional[str], schema: BaseModel) -> str:
     DEFAULT_SCHEMA_PREFIX = 'JSON schema:'
-    DEFAULT_SCHEMA_SUFFIX = 'You MUST answer with a JSON object that matches the JSON schema above. Do not include any other text, only the JSON object.'
+    DEFAULT_SCHEMA_SUFFIX = "You MUST answer with a JSON object that matches the JSON schema above. Do not include any other text, only the JSON object and DO NOT return the data in markdown format."
 
     components = [
         prompt if prompt and len(prompt) > 0 else None,
@@ -135,20 +135,22 @@ def generate_object(
 
     messages = standardize_messages(system, prompt, messages)
     options.messages = messages
-    print(messages)
-
+    
     while True:
         retry_count = 0
         while retry_count < options.max_retries:
             try:
                 res = model.do_generate(options)
-                object = _parse_respones(object_generation_mode, res, schema)
+                object = _parse_responses(object_generation_mode, res, schema)
                 break
             except AI_APICallError as e:
                 if not e.is_retryable:
                     raise e
                 else:
                     retry_count += 1
+                    if retry_count >= options.max_retries:
+                        raise e
+
                     time.sleep(1.0 * (2 ** retry_count))
                     continue
             except AI_ObjectValidationError as e:

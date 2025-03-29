@@ -57,6 +57,11 @@ SUPPORTED_JSON_MODELS = [
     "o3-mini"
 ]
 
+UNSUPPORTED_SYSTEM_MESSAGES = [
+    "o1-mini",
+    "o1-preview"
+]
+
 class OpenAIChatModel(LanguageModel):
     def __init__(self, model_id: str, settings: OpenAIChatSettings, config: OpenAIChatConfig):
         if model_id not in SUPPORTED_MODELS:
@@ -204,10 +209,16 @@ class OpenAIChatModel(LanguageModel):
 
         for message in messages:
             if message.role == "system":
-                res.append({
-                    "role": "developer",
-                    "content": message.content
-                })
+                if self.model_id in UNSUPPORTED_SYSTEM_MESSAGES:
+                    res.append({
+                        "role": "assistant",
+                        "content":  message.content
+                    })
+                else:
+                    res.append({
+                        "role": "developer",
+                        "content": message.content
+                    })
             elif message.role == "user":
                 if isinstance(message.content, str):
                     res.append({

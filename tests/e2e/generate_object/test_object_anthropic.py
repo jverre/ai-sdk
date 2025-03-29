@@ -31,9 +31,9 @@ def test_generate_object(model_id):
     response = generate_object(
         model=model,
         schema=RecipeResponse,
-        prompt="Generate a lasagna recipe.",
+        prompt="Generate a very short lasagna recipe.",
         max_tokens=4096,
-        max_retries=3
+        max_retries=1
     )
     
     assert response.object is not None

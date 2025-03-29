@@ -318,40 +318,15 @@ class AnthropicChatModel(LanguageModel):
 
             result = response.json()
             if response.status_code != 200:
-                if self._is_retryable(response.status_code):
-                    retry_count = 0
-                    while retry_count < options.max_retries:
-                        response = client.post(
-                            url = url,
-                            headers = self.config.headers(),
-                            json = args,
-                            timeout = 60
-                        )
+                raise AI_APICallError(
+                    url = url,
+                    request_body_values = args,
+                    status_code = response.status_code,
+                    response_headers = response.headers,
+                    response_body = result,
+                    is_retryable = self._is_retryable(response.status_code)
+                )
 
-                        if response.status_code == 200:
-                            break
-                        else:
-                            if not self._is_retryable(response.status_code):
-                                raise AI_APICallError(
-                                    url = url,
-                                    request_body_values = args,
-                                    status_code = response.status_code,
-                                    response_headers = response.headers,
-                                    response_body = result,
-                                    is_retryable = self._is_retryable(response.status_code)
-                                )
-                            else:
-                                retry_count += 1
-                else:
-                    raise AI_APICallError(
-                        url = url,
-                        request_body_values = args,
-                        status_code = response.status_code,
-                        response_headers = response.headers,
-                        response_body = result,
-                        is_retryable = self._is_retryable(response.status_code)
-                    )
-            
             return LanguageModelCallResult(
                 text = result["content"][0]["text"] if result["content"][0]["type"] == "text" else "",
                 tool_calls = self._parse_tool_calls(result),
