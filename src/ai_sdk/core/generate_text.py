@@ -51,12 +51,22 @@ def generate_text(
         provider_metadata=provider_options
     )
     step = 0
-    
+    usage = Usage(
+        prompt_tokens=0,
+        completion_tokens=0,
+        total_tokens=0
+    )
+
     while True:
         retry_count = 0
         while retry_count < options.max_retries:
             try:
                 res = model.do_generate(options)
+                usage = Usage(
+                    prompt_tokens=usage.prompt_tokens + res.usage.prompt_tokens,
+                    completion_tokens=usage.completion_tokens + res.usage.completion_tokens,
+                    total_tokens=usage.total_tokens + res.usage.total_tokens
+                )
                 break
             except AI_APICallError as e:
                 if not e.is_retryable:
@@ -113,11 +123,7 @@ def generate_text(
         finish_reason=res.finish_reason,
         tool_calls=res.tool_calls or [],
         tool_results=tool_results,
-        usage=Usage(
-            prompt_tokens=res.usage.prompt_tokens,
-            completion_tokens=res.usage.completion_tokens,
-            total_tokens=res.usage.prompt_tokens + res.usage.completion_tokens
-        ),
+        usage=usage,
         request=RequestMetadata(body=res.request.body),
         response=ResponseMetadata(
             id=res.response.id,

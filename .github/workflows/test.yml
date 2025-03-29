@@ -26,6 +26,9 @@ jobs:
         pip install -e ".[test]"
     
     - name: Run tests with coverage
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       run: |
         pytest --cov=ai_sdk --cov-report=xml
     
