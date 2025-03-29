@@ -5,9 +5,6 @@ from ai_sdk import generate_object
 from dotenv import load_dotenv
 import os
 from pydantic import BaseModel
-from ai_sdk.core.errors import AI_UnsupportedFunctionalityError
-import math
-import random
 from typing import List
 
 # Load environment variables from .env file
@@ -31,21 +28,13 @@ def test_generate_object(model_id):
         recipe: Recipe
 
     model = anthropic(model_id)
-    if model.supports_tool_calls() or model.supports_json_mode():
-        response = generate_object(
-            model=model,
-            schema=RecipeResponse,
-            prompt="Generate a lasagna recipe.",
-            max_tokens=10000
-        )
-        
-        assert response.object is not None
-        assert response.usage.total_tokens > 0
-    else:
-        with pytest.raises(AI_UnsupportedFunctionalityError):
-            generate_object(
-                model=model,
-                schema=RecipeResponse,
-                prompt="Generate a lasagna recipe.",
-                max_tokens=10000
-            )
+    response = generate_object(
+        model=model,
+        schema=RecipeResponse,
+        prompt="Generate a lasagna recipe.",
+        max_tokens=4096,
+        max_retries=3
+    )
+    
+    assert response.object is not None
+    assert response.usage.total_tokens > 0

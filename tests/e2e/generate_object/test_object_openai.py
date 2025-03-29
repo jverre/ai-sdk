@@ -29,21 +29,12 @@ def test_generate_object(model_id):
         recipe: Recipe
 
     model = openai(model_id)
-    if model.supports_tool_calls() or model.supports_json_mode():
-        response = generate_object(
-            model=model,
-            schema=RecipeResponse,
-            prompt="Generate a lasagna recipe.",
-            max_tokens=10000
-        )
-        
-        assert response.object is not None
-        assert response.usage.total_tokens > 0
-    else:
-        with pytest.raises(AI_UnsupportedFunctionalityError):
-            generate_object(
-                model=model,
-                schema=RecipeResponse,
-                prompt="Generate a lasagna recipe.",
-                max_tokens=10000
-            )
+    response = generate_object(
+        model=model,
+        schema=RecipeResponse,
+        prompt="Generate a lasagna recipe.",
+        max_tokens=10000
+    )
+    
+    assert response.object is not None
+    assert response.usage.total_tokens > 0

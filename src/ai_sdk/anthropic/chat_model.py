@@ -8,7 +8,7 @@ import validators
 import json
 import datetime
 import uuid
-
+from typing import Tuple
 SUPPORTED_MODELS = [
     "claude-3-7-sonnet-20250219",
     "claude-3-5-sonnet-20241022",
@@ -28,7 +28,14 @@ SUPPORTED_IMAGE_MODELS = [
     "claude-3-haiku-20240307"
 ]
 
-SUPPORTED_TOOL_MODELS = SUPPORTED_MODELS
+SUPPORTED_TOOL_MODELS =  [
+    "claude-3-7-sonnet-20250219",
+    "claude-3-5-sonnet-20241022",
+    "claude-3-5-sonnet-20240620",
+    "claude-3-5-haiku-20241022",
+    "claude-3-opus-20240229",
+    "claude-3-haiku-20240307"
+]
 
 class AnthropicChatSettings(BaseModel):
     sendReasoning: Optional[bool] = True
@@ -38,12 +45,6 @@ class AnthropicChatConfig(BaseModel):
     url: Any
     headers: Any
     fetch: Any
-
-class MessageRole(str, Enum):
-    SYSTEM = "system"
-    USER = "user"
-    ASSISTANT = "assistant"
-    TOOL = "tool"
 
 class MessageBlock(BaseModel):
     type: str
@@ -67,24 +68,24 @@ class AnthropicChatModel(LanguageModel):
         current_block = None
 
         for message in messages:
-            if message.role == MessageRole.SYSTEM:
+            if message.role == "system":
                 if not current_block or current_block.type != "system":
                     current_block = MessageBlock(type="system", messages=[])
                     blocks.append(current_block)
                 current_block.messages.append(message)
                 
-            elif message.role == MessageRole.ASSISTANT:
+            elif message.role == "assistant":
                 if not current_block or current_block.type != "assistant":
                     current_block = MessageBlock(type="assistant", messages=[])
                     blocks.append(current_block)
                 current_block.messages.append(message)
                 
-            elif message.role == MessageRole.USER:
+            elif message.role == "user":
                 if not current_block or current_block.type != "user":
                     current_block = MessageBlock(type="user", messages=[])
                     blocks.append(current_block)
                 current_block.messages.append(message)
-            elif message.role == MessageRole.TOOL:
+            elif message.role == "tool":
                 if not current_block or current_block.type != "tool":
                     current_block = MessageBlock(type="tool", messages=[])
                     blocks.append(current_block)
@@ -96,9 +97,10 @@ class AnthropicChatModel(LanguageModel):
 
         return blocks
 
-    def _convert_messages(self, messages: List[Message]) -> Dict[str, Any]:
+    def _convert_messages(self, messages: List[Message]) -> Tuple[List[Dict[str, Any]], Optional[List[Dict[str, Any]]]]:
         system = None
         blocks = self.group_into_blocks(messages)
+        print("blocks: ", blocks)
 
         res = []
         for block in blocks:
@@ -193,14 +195,17 @@ class AnthropicChatModel(LanguageModel):
                     functionality=f"Unsupported message type: {block.type}",
                 )
 
-        return res
+        return res, system
 
     def _get_args(self, options: LanguageModelCallOptions):
         warnings = []
 
         args = {}
         args["model"] = self.model_id
-        args["messages"] = self._convert_messages(options.messages)
+        messages, system = self._convert_messages(options.messages)
+        args["messages"] = messages
+        if system is not None:
+            args["system"] = system
         args["max_tokens"] = options.max_tokens or 4096
 
         if options.temperature is not None:
