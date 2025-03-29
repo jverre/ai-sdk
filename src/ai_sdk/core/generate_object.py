@@ -147,7 +147,7 @@ def generate_object(
 
     return ObjectResult(
         object=object,
-        finish_reason="unknown",
+        finish_reason=res.finish_reason,
         usage=Usage(
             prompt_tokens=res.usage.prompt_tokens,
             completion_tokens=res.usage.completion_tokens,

@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict, Literal, Any
-from .types import Message, Warning, ToolCallPart, Tool
+from .types import Message, Warning, ToolCallPart, Tool, FinishReason
 from pydantic import BaseModel
 import datetime
 
@@ -23,8 +23,6 @@ class LanguageModelCallOptions(LanguageModelCallSettings):
     provider_metadata: Optional[LanguageModelProviderMetadata] = None
     max_retries: int = 3
 
-LanguageModelFinishReason = Literal["stop", "length", "content_filter", "error", "other", "unknown"]
-
 class LanguageModelUsage(BaseModel):
     prompt_tokens: int
     completion_tokens: int
@@ -43,7 +41,7 @@ class LanguageModelResponse(BaseModel):
 class LanguageModelCallResult(BaseModel):
     text: Optional[str] = None
     tool_calls: Optional[List[ToolCallPart]] = None
-    finish_reason: Optional[LanguageModelFinishReason] = None
+    finish_reason: Optional[FinishReason] = None
     usage: LanguageModelUsage
     request: Optional[LanguageModelRequest] = None
     response: Optional[LanguageModelResponse] = None

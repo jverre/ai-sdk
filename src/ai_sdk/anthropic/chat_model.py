@@ -1,8 +1,8 @@
-from ..core.language_model import LanguageModel, LanguageModelCallOptions, LanguageModelCallResult, LanguageModelUsage, LanguageModelRequest, LanguageModelResponse, LanguageModelFinishReason
+from ..core.language_model import LanguageModel, LanguageModelCallOptions, LanguageModelCallResult, LanguageModelUsage, LanguageModelRequest, LanguageModelResponse
 from typing import Optional, Dict, Any, List
 from enum import Enum
 from pydantic import BaseModel
-from ..core.types import UnsupportedSettingWarning, Message, ToolCallPart
+from ..core.types import UnsupportedSettingWarning, Message, ToolCallPart, FinishReason
 from ..core.errors import AI_UnsupportedFunctionalityError, AI_APICallError
 import validators
 import json
@@ -266,7 +266,7 @@ class AnthropicChatModel(LanguageModel):
         
         return False
 
-    def _convert_finish_reason(self, response: Dict[str, Any]) -> LanguageModelFinishReason:
+    def _convert_finish_reason(self, response: Dict[str, Any]) -> FinishReason:
         if response["stop_reason"] == "end_turn":
             return "stop"
         elif response["stop_reason"] == "stop_sequence":
@@ -350,6 +350,7 @@ class AnthropicChatModel(LanguageModel):
             return LanguageModelCallResult(
                 text = result["content"][0]["text"] if result["content"][0]["type"] == "text" else "",
                 tool_calls = self._parse_tool_calls(result),
+                finish_reason = self._convert_finish_reason(result),
                 usage = LanguageModelUsage(
                     prompt_tokens = result["usage"]["input_tokens"],
                     completion_tokens = result["usage"]["output_tokens"]
