@@ -5,8 +5,7 @@ from ai_sdk import generate_object
 from dotenv import load_dotenv
 import os
 from pydantic import BaseModel
-import math
-import random
+from ai_sdk.core.errors import AI_UnsupportedFunctionalityError
 from typing import List
 
 # Load environment variables from .env file
@@ -17,8 +16,8 @@ def pytest_configure(config):
     if not os.getenv("OPENAI_API_KEY"):
         raise Exception("OPENAI_API_KEY environment variable is not set")
 
-@pytest.mark.parametrize("model", [SUPPORTED_MODELS[0]])
-def test_generate_object(model):
+@pytest.mark.parametrize("model_id", SUPPORTED_MODELS)
+def test_generate_object(model_id):
     """Test basic text generation for each model"""
     # Define the schema using Pydantic
     class Recipe(BaseModel):
@@ -29,13 +28,22 @@ def test_generate_object(model):
     class RecipeResponse(BaseModel):
         recipe: Recipe
 
-    response = generate_object(
-        model=openai(model),
-        schema=RecipeResponse,
-        prompt="Generate a lasagna recipe.",
-        max_tokens=10000
-    )
-    
-    assert response.object is not None
-    assert response.usage.total_tokens > 0
-    print(response.object)
+    model = openai(model_id)
+    if model.supports_tool_calls() or model.supports_json_mode():
+        response = generate_object(
+            model=model,
+            schema=RecipeResponse,
+            prompt="Generate a lasagna recipe.",
+            max_tokens=10000
+        )
+        
+        assert response.object is not None
+        assert response.usage.total_tokens > 0
+    else:
+        with pytest.raises(AI_UnsupportedFunctionalityError):
+            generate_object(
+                model=model,
+                schema=RecipeResponse,
+                prompt="Generate a lasagna recipe.",
+                max_tokens=10000
+            )

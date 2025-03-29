@@ -46,9 +46,6 @@ SUPPORTED_IMAGE_MODELS = [
 SUPPORTED_TOOL_MODELS = [
     "gpt-4o",
     "gpt-4o-mini",
-    "gpt-4-turbo",
-    "gpt-4",
-    "gpt-3.5-turbo",
     "o1",
     "o3-mini"
 ]
@@ -56,9 +53,6 @@ SUPPORTED_TOOL_MODELS = [
 SUPPORTED_JSON_MODELS = [
     "gpt-4o",
     "gpt-4o-mini",
-    "gpt-4-turbo",
-    "gpt-4",
-    "gpt-3.5-turbo",
     "o1",
     "o3-mini"
 ]
@@ -80,6 +74,8 @@ class OpenAIChatModel(LanguageModel):
     def _convert_finish_reason(self, finish_reason: str) -> FinishReason:
         if finish_reason == "tool_calls":
             return "tool-calls"
+        elif finish_reason == "content_filter":
+            return "content-filter"
         else:
             return finish_reason
         
