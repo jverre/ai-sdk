@@ -87,9 +87,19 @@ class StepResult(BaseModel):
 
 class TextResult(BaseModel):
     text: str
+    finish_reason: FinishReason
     usage: Usage
     tool_calls: List[ToolCallPart] = []
     tool_results: List[ToolResultPart] = []
+    request: Optional[RequestMetadata] = None
+    response: Optional[ResponseMetadata] = None
+    warnings: Optional[List[Warning]] = None
+    provider_metadata: Optional[Dict[str, Dict[str, Any]]] = None
+
+class ObjectResult(BaseModel):
+    object: BaseModel
+    finish_reason: FinishReason
+    usage: Usage
     request: Optional[RequestMetadata] = None
     response: Optional[ResponseMetadata] = None
     warnings: Optional[List[Warning]] = None
@@ -97,4 +107,6 @@ class TextResult(BaseModel):
 class Tool(BaseModel):
     description: Optional[str] = None
     parameters: Type[BaseModel]
-    execute: Callable[..., Any]
+    execute: Optional[Callable[..., Any]] = None
+
+Mode = Literal["auto", "json", "tool"]

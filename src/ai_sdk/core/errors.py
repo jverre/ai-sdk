@@ -107,3 +107,17 @@ class AI_ToolExecutionError(Exception):
             details.append(f"Cause: {str(self.cause)}")
             
         return f"{super().__str__()}\n" + "\n".join(details)
+
+class AI_ObjectValidationError(Exception):
+    """
+    Custom error class for object validation failures.
+    
+    Attributes:
+        message (str): Error message
+    """
+    def __init__(
+        self,
+        message: str
+    ):
+        self.message = message
+        super().__init__(self.message)

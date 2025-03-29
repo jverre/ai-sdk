@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict, Literal, Any
-from .types import Message, Warning, ToolCallPart, Tool
+from .types import Message, Warning, ToolCallPart, Tool, FinishReason
 from pydantic import BaseModel
 import datetime
 
@@ -12,6 +12,7 @@ class LanguageModelCallSettings(BaseModel):
     presence_penalty: Optional[float] = None
     frequency_penalty: Optional[float] = None
     seed: Optional[int] = None
+    response_format: Optional[BaseModel] = None
 
 LanguageModelProviderMetadata = Dict[str, Dict[str, Any]]
 
@@ -21,8 +22,6 @@ class LanguageModelCallOptions(LanguageModelCallSettings):
     headers: Optional[Dict[str, str]] = None
     provider_metadata: Optional[LanguageModelProviderMetadata] = None
     max_retries: int = 3
-
-LanguageModelFinishReason = Literal["stop", "length", "content_filter", "error", "other", "unknown"]
 
 class LanguageModelUsage(BaseModel):
     prompt_tokens: int
@@ -42,7 +41,7 @@ class LanguageModelResponse(BaseModel):
 class LanguageModelCallResult(BaseModel):
     text: Optional[str] = None
     tool_calls: Optional[List[ToolCallPart]] = None
-    finish_reason: Optional[LanguageModelFinishReason] = None
+    finish_reason: Optional[FinishReason] = None
     usage: LanguageModelUsage
     request: Optional[LanguageModelRequest] = None
     response: Optional[LanguageModelResponse] = None
@@ -69,6 +68,12 @@ class LanguageModel:
             raise AttributeError(
                 f"Missing required attributes: {', '.join(missing)}"
             )
+    
+    def supports_json_mode(self) -> bool:
+        pass
+
+    def supports_tool_calls(self) -> bool:
+        pass
 
     def do_generate(self, options: LanguageModelCallOptions) -> LanguageModelCallResult:
         pass

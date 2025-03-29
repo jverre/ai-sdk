@@ -1,7 +1,7 @@
-from ..core.language_model import LanguageModel, LanguageModelCallOptions, LanguageModelCallResult, LanguageModelUsage, LanguageModelRequest, LanguageModelResponse, LanguageModelFinishReason
+from ..core.language_model import LanguageModel, LanguageModelCallOptions, LanguageModelCallResult, LanguageModelUsage, LanguageModelRequest, LanguageModelResponse
 from typing import Optional, Dict, Union, Any, List
 from pydantic import BaseModel
-from ..core.types import UnsupportedSettingWarning, Message, ToolCallPart
+from ..core.types import UnsupportedSettingWarning, Message, ToolCallPart, FinishReason
 from ..core.errors import AI_APICallError, AI_UnsupportedFunctionalityError
 import json
 import datetime
@@ -31,14 +31,16 @@ SUPPORTED_MODELS = [
     "o1-mini",
     "o1-preview",
     "o3-mini",
+    "chatgpt-4o-latest"
 ]
 
 SUPPORTED_IMAGE_MODELS = [
-    "gpt-4o-audio-preview",
-    "gpt-4",
-    "gpt-3.5-turbo",
-    "o1-preview",
-    "o3-mini"
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+    "o1",
+    "o1-mini",
+    "chatgpt-4o-latest"
 ]
 
 SUPPORTED_TOOL_MODELS = [
@@ -48,7 +50,17 @@ SUPPORTED_TOOL_MODELS = [
     "gpt-4",
     "gpt-3.5-turbo",
     "o1",
-    "o3-mini",
+    "o3-mini"
+]
+
+SUPPORTED_JSON_MODELS = [
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+    "gpt-4",
+    "gpt-3.5-turbo",
+    "o1",
+    "o3-mini"
 ]
 
 class OpenAIChatModel(LanguageModel):
@@ -65,6 +77,12 @@ class OpenAIChatModel(LanguageModel):
         super().__init__(model_id, config.provider)
         
 
+    def _convert_finish_reason(self, finish_reason: str) -> FinishReason:
+        if finish_reason == "tool_calls":
+            return "tool-calls"
+        else:
+            return finish_reason
+        
     def _get_args(self, options: LanguageModelCallOptions):
         warnings = []
 
@@ -103,8 +121,18 @@ class OpenAIChatModel(LanguageModel):
                     "parameters": tool.parameters.model_json_schema()
                 }
             } for tool_name, tool in options.tools.items()]
+        
         if options.seed is not None:
             args["seed"] = options.seed
+
+        if options.response_format is not None:
+            args["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "json_schema",
+                    "schema": options.response_format.model_json_schema()
+                }
+            }
 
         return args, warnings
         
@@ -133,6 +161,16 @@ class OpenAIChatModel(LanguageModel):
         if response_code in [408, 409, 429] or response_code >= 500:
             return True
         
+        return False
+
+    def supports_json_mode(self) -> bool:
+        if self.model_id in SUPPORTED_JSON_MODELS:
+            return True
+        return False
+    
+    def supports_tool_calls(self) -> bool:
+        if self.model_id in SUPPORTED_TOOL_MODELS:
+            return True
         return False
 
     def _convert_tool_calls_to_openai_format(self, tool_calls: list[ToolCallPart]) -> list[Dict[str, Any]]:
@@ -274,6 +312,7 @@ class OpenAIChatModel(LanguageModel):
             
             return LanguageModelCallResult(
                 text = result["choices"][0]["message"]["content"],
+                finish_reason = self._convert_finish_reason(result["choices"][0]["finish_reason"]),
                 tool_calls = self._parse_tool_calls(result),
                 usage = LanguageModelUsage(
                     prompt_tokens = result["usage"]["prompt_tokens"],
@@ -284,7 +323,6 @@ class OpenAIChatModel(LanguageModel):
                 ),
                 response = LanguageModelResponse(
                     id = result["id"],
-                    finish_reason = result["choices"][0]["finish_reason"],
                     timestamp = datetime.datetime.fromtimestamp(result["created"]),
                     headers = response.headers,
                     model_id = result["model"],
