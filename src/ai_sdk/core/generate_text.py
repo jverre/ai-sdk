@@ -65,7 +65,7 @@ def generate_text(
                 usage = Usage(
                     prompt_tokens=usage.prompt_tokens + res.usage.prompt_tokens,
                     completion_tokens=usage.completion_tokens + res.usage.completion_tokens,
-                    total_tokens=usage.total_tokens + res.usage.total_tokens
+                    total_tokens=usage.total_tokens + res.usage.prompt_tokens + res.usage.completion_tokens
                 )
                 break
             except AI_APICallError as e:
