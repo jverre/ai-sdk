@@ -7,7 +7,7 @@ import os
 import math
 import random
 from pydantic import BaseModel
-from ai_sdk.core.errors import AI_UnsupportedFunctionalityError
+from ai_sdk.core.errors import AI_UnsupportedFunctionalityError, AI_APICallError
 
 # Load environment variables from .env file
 load_dotenv()
@@ -63,21 +63,28 @@ def test_generate_text_with_tool(model):
     class WeatherTool(BaseModel):
         location: str
 
-    response = generate_text(
-        model=anthropic(model),
-        prompt="What is the weather in San Francisco?",
-        max_steps=2,
-        tools={
-            "weather": {
-                "description": "Get the weather in a location",
-                "parameters": WeatherTool,
-                "execute": lambda location: {
-                    "location": location,
-                    "temperature": 72 + math.floor(random.random() * 21) - 10,
+    try:
+        response = generate_text(
+            model=anthropic(model),
+            prompt="What is the weather in San Francisco?",
+            max_steps=2,
+            tools={
+                "weather": {
+                    "description": "Get the weather in a location",
+                    "parameters": WeatherTool,
+                    "execute": lambda location: {
+                        "location": location,
+                        "temperature": 72 + math.floor(random.random() * 21) - 10,
+                    }
                 }
             }
-        }
-    )
+        )
+    
+    except AI_APICallError as e:
+        if e.status_code == 529:
+            pytest.skip("Anthropic server is overloaded")
+        else:
+            raise e
 
     assert response.text is not None and len(response.text) > 0
     assert response.usage.total_tokens > 0

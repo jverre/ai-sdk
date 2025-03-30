@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import os
 from pydantic import BaseModel
 from typing import List
+from ai_sdk.core.errors import AI_APICallError
 
 # Load environment variables from .env file
 load_dotenv()
@@ -27,14 +28,21 @@ def test_generate_object(model_id):
     class RecipeResponse(BaseModel):
         recipe: Recipe
 
-    model = anthropic(model_id)
-    response = generate_object(
-        model=model,
-        schema=RecipeResponse,
-        prompt="Generate a very short lasagna recipe.",
-        max_tokens=4096,
-        max_retries=1
-    )
+    try:
+        model = anthropic(model_id)
+        response = generate_object(
+            model=model,
+            schema=RecipeResponse,
+            prompt="Generate a very short lasagna recipe.",
+            max_tokens=4096,
+            max_retries=1
+        )
+    except AI_APICallError as e:
+        if e.status_code == 529:
+            pytest.skip("Anthropic server is overloaded")
+        else:
+            raise e
+    
     
     assert response.object is not None
     assert response.usage.total_tokens > 0
