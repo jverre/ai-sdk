@@ -65,7 +65,7 @@ We are going to run the evaluation based on the first 50 items in the [Synthetic
 
 *Notes:* To facilitate the evaluation, we will be using the ai-sdk.
 
-## Results
+## Results
 
 Results for 50 optimization steps:
 
