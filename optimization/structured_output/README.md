@@ -19,16 +19,15 @@ of the responses but rather ensure that the LLM returns a valid JSON response.
 
 We will be evaluating the following models available on Open-Router:
 
-1. Gemma 3
-2. DeepSeek R1
-3. Llama 3.3 - 70B
-4. Llama 3.2 - 3B
-5. Llama 3.1 8B Instruct
-6. phi4
-7. phi4-mini
-8. Mistal - 7B
-9. Qwen 2.5
-10. Command-a
+1. Gemma 3 - gemma-3-4b-it
+2. DeepSeek R1 - deepseek/deepseek-r1
+3. Llama 3.3 - 70B - meta-llama/llama-3.3-70b-instruct
+4. Llama 3.2 - 3B - meta-llama/llama-3.2-3b-instruct
+5. Llama 3.1 8B - perplexity/llama-3.1-sonar-small-128k-online
+6. phi4 - microsoft/phi-4
+8. Mistal - 7B - mistralai/mistral-7b-instruct
+9. Qwen 2.5 - qwen/qwen2.5-32b-instruct
+10. Command-a - cohere/command-a
 
 We are going to run the evaluation based on the first 50 items in the [Synthetic PII dataset](https://huggingface.co/datasets/gretelai/synthetic_pii_finance_multilingual/viewer/default/test). The goal is to extract the PII in the dataset that follows the following format:
 
@@ -65,3 +64,63 @@ We are going to run the evaluation based on the first 50 items in the [Synthetic
 ```
 
 *Notes:* To facilitate the evaluation, we will be using the ai-sdk.
+
+## Results
+
+Results for 50 optimization steps:
+
+```
+--- Running evaluation for google/gemma-3-4b-it ---
+Best performing instruction for google/gemma-3-4b-it:
+Score: 1.0
+Optimization step: 0
+Instruction: You MUST answer with a JSON object that matches the JSON schema above. Do not include any other text, only the JSON object and DO NOT return the data in markdown format.
+
+
+--- Running evaluation for meta-llama/llama-3.3-70b-instruct ---
+Best performing instruction for meta-llama/llama-3.3-70b-instruct:
+Score: 1.0
+Optimization step: 1
+Instruction: Ensure that your response is a correctly formatted JSON object, validating it against the provided JSON schema. Avoid adding any explanatory text or formatting such as markdown. Strictly output only the JSON object.
+
+
+--- Running evaluation for meta-llama/llama-3.2-3b-instruct ---
+Best performing instruction for meta-llama/llama-3.2-3b-instruct:
+Score: 0.4
+Optimization step: 0
+Instruction: You MUST answer with a JSON object that matches the JSON schema above. Do not include any other text, only the JSON object and DO NOT return the data in markdown format.
+
+--- Running evaluation for perplexity/llama-3.1-sonar-small-128k-online ---
+Best performing instruction for perplexity/llama-3.1-sonar-small-128k-online:
+Score: 0.4
+Optimization step: 3
+Instruction: Provide your response as a JSON object by directly starting and ending with the JSON structure according to the given schema. Avoid adding any extra text, including explanations or confirmations, outside the braces that encapsulate the JSON content.
+
+
+--- Running evaluation for microsoft/phi-4 ---
+Best performing instruction for microsoft/phi-4:
+Score: 1.0
+Optimization step: 0
+Instruction: You MUST answer with a JSON object that matches the JSON schema above. Do not include any other text, only the JSON object and DO NOT return the data in markdown format.
+
+
+--- Running evaluation for mistralai/mistral-7b-instruct ---
+Best performing instruction for mistralai/mistral-7b-instruct:
+Score: 1.0
+Optimization step: 28
+Instruction: Respond solely with a valid JSON object that adheres strictly to the provided schema. Begin your output with the opening curly brace '{' and end with the closing curly brace '}', ensuring nothing precedes or follows these braces. Follow these precise JSON guidelines: use double quotes for all keys and string values, separate keys and values with colons, and separate key-value pairs with commas, taking special care to avoid trailing commas. To mitigate common errors, closely examine your JSON for misplaced punctuation or unexpected data. Utilize a trusted JSON validator to confirm your JSON is flawless and formed correctly, adjusting errors as necessary to achieve an error-free result before submission.
+
+
+--- Running evaluation for cohere/command-a ---
+Best performing instruction for cohere/command-a:
+Score: 1.0
+Optimization step: 0
+Instruction: You MUST answer with a JSON object that matches the JSON schema above. Do not include any other text, only the JSON object and DO NOT return the data in markdown format.
+
+
+--- Running evaluation for qwen/qwen2.5-32b-instruct ---
+Best performing instruction for qwen/qwen2.5-32b-instruct:
+Score: 1.0
+Optimization step: 0
+Instruction: You MUST answer with a JSON object that matches the JSON schema above. Do not include any other text, only the JSON object and DO NOT return the data in markdown format.
+```

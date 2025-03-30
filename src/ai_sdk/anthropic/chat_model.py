@@ -316,7 +316,18 @@ class AnthropicChatModel(LanguageModel):
                 timeout = 60
             )
 
-            result = response.json()
+            try:
+                result = response.json()
+            except Exception as e:
+                raise AI_APICallError(
+                    url = url,
+                    request_body_values = args,
+                    status_code = response.status_code,
+                    response_headers = response.headers,
+                    response_body = response.text,
+                    is_retryable = self._is_retryable(response.status_code)
+                )
+            
             if response.status_code != 200:
                 raise AI_APICallError(
                     url = url,
@@ -327,8 +338,20 @@ class AnthropicChatModel(LanguageModel):
                     is_retryable = self._is_retryable(response.status_code)
                 )
 
+            try:
+                text = result["content"][0]["text"] if result["content"][0]["type"] == "text" else ""
+            except Exception as e:
+                raise AI_APICallError(
+                    url = url,
+                    request_body_values = args,
+                    status_code = response.status_code,
+                    response_headers = response.headers,
+                    response_body = result,
+                    is_retryable = self._is_retryable(response.status_code)
+                )
+            
             return LanguageModelCallResult(
-                text = result["content"][0]["text"] if result["content"][0]["type"] == "text" else "",
+                text = text,
                 tool_calls = self._parse_tool_calls(result),
                 finish_reason = self._convert_finish_reason(result),
                 usage = LanguageModelUsage(

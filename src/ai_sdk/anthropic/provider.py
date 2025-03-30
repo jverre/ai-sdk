@@ -3,7 +3,7 @@ from typing import Dict, Callable, Any, Optional
 from ..core.utils import load_api_key
 from .chat_model import AnthropicChatModel, AnthropicChatSettings, AnthropicChatConfig
 import httpx
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 class AnthropicProviderSettings(BaseModel):
     name: str = "anthropic"
@@ -15,7 +15,6 @@ class AnthropicProviderSettings(BaseModel):
 class AnthropicProvider:
     def __init__(self, settings: AnthropicProviderSettings):
         self.settings = settings
-
         self.chat = self.create_chat_model
     
     def _get_headers(self) -> Dict[str, str]:
@@ -29,13 +28,23 @@ class AnthropicProvider:
         
         return anthropic_headers
     
+    def _join_url(self, path: str) -> str:
+        # Ensure base_url ends with a slash if it has a path
+        base = self.settings.base_url
+        if base and not base.endswith('/'):
+            parsed = urlparse(base)
+            if parsed.path:
+                base = base + '/'
+        
+        return urljoin(base, path.lstrip('/'))
+    
     def create_chat_model(self, model_id: str, settings: AnthropicChatSettings) -> AnthropicChatModel:
         return AnthropicChatModel(
             model_id=model_id,
             settings=settings,
             config=AnthropicChatConfig(
                 provider=f"{self.settings.name}.chat",
-                url=lambda path: urljoin(self.settings.base_url, path),
+                url=self._join_url,
                 headers=self._get_headers,
                 fetch=self.settings.fetch
             )
