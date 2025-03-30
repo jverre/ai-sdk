@@ -64,11 +64,11 @@ UNSUPPORTED_SYSTEM_MESSAGES = [
 
 class OpenAIChatModel(LanguageModel):
     def __init__(self, model_id: str, settings: OpenAIChatSettings, config: OpenAIChatConfig):
-        if model_id not in SUPPORTED_MODELS:
-            raise AI_UnsupportedFunctionalityError(
-                functionality="Model",
-                reason=f"This model is not supported: {model_id}"
-            )
+        # if model_id not in SUPPORTED_MODELS:
+        #     raise AI_UnsupportedFunctionalityError(
+        #         functionality="Model",
+        #         message=f"This model is not supported: {model_id}"
+        #     )
         self.default_object_generation_mode = "json"
         self.settings = settings
         self.config = config
@@ -76,11 +76,13 @@ class OpenAIChatModel(LanguageModel):
         super().__init__(model_id, config.provider)
         
 
-    def _convert_finish_reason(self, finish_reason: str) -> FinishReason:
+    def _convert_finish_reason(self, finish_reason: Optional[str]) -> FinishReason:
         if finish_reason == "tool_calls":
             return "tool-calls"
         elif finish_reason == "content_filter":
             return "content-filter"
+        elif finish_reason is None:
+            return "unknown"
         else:
             return finish_reason
         
@@ -111,8 +113,7 @@ class OpenAIChatModel(LanguageModel):
         if options.tools is not None:
             if self.model_id not in SUPPORTED_TOOL_MODELS:
                 raise AI_UnsupportedFunctionalityError(
-                    "Tool calls",
-                    f"This model does not support tool calls: {self.model_id}"
+                    "Tool calls"
                 )
             args["tools"] = [{
                 "type": "function",
@@ -216,7 +217,7 @@ class OpenAIChatModel(LanguageModel):
                     })
                 else:
                     res.append({
-                        "role": "developer",
+                        "role": "system",
                         "content": message.content
                     })
             elif message.role == "user":
@@ -282,7 +283,7 @@ class OpenAIChatModel(LanguageModel):
         tool_calls = []
 
         for choice in result["choices"]:
-            if choice["finish_reason"] == "tool_calls":
+            if choice.get("finish_reason", None) == "tool_calls":
                 for tool_call in choice["message"]["tool_calls"]:
                     # Parse the JSON string into a Python dict
                     args_dict = json.loads(tool_call["function"]["arguments"])
@@ -306,7 +307,18 @@ class OpenAIChatModel(LanguageModel):
                 timeout = 60
             )
 
-            result = response.json()
+            try:
+                result = response.json()
+            except Exception as e:
+                raise AI_APICallError(
+                    url = self.config.url("/v1/chat/completions"),
+                    request_body_values = args,
+                    status_code = response.status_code,
+                    response_headers = response.headers,
+                    response_body = response.text,
+                    is_retryable = self._is_retryable(response.status_code)
+                )
+            
             if response.status_code != 200:
                 raise AI_APICallError(
                     url = self.config.url("/v1/chat/completions"),
@@ -317,9 +329,21 @@ class OpenAIChatModel(LanguageModel):
                     is_retryable = self._is_retryable(response.status_code)
                 )
             
+            try:
+                text = result["choices"][0]["message"]["content"]
+            except Exception as e:
+                raise AI_APICallError(
+                    url = self.config.url("/v1/chat/completions"),
+                    request_body_values = args,
+                    status_code = response.status_code,
+                    response_headers = response.headers,
+                    response_body = result,
+                    is_retryable = self._is_retryable(response.status_code)
+                )
+            
             return LanguageModelCallResult(
-                text = result["choices"][0]["message"]["content"],
-                finish_reason = self._convert_finish_reason(result["choices"][0]["finish_reason"]),
+                text = text,
+                finish_reason = self._convert_finish_reason(result["choices"][0].get("finish_reason", None)),
                 tool_calls = self._parse_tool_calls(result),
                 usage = LanguageModelUsage(
                     prompt_tokens = result["usage"]["prompt_tokens"],

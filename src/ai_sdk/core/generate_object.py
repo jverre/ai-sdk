@@ -12,11 +12,14 @@ import json
 def _parse_responses(object_generation_mode: str, res: LanguageModelCallResult, schema: BaseModel) -> BaseModel:
     if object_generation_mode == "json" or object_generation_mode == "text":
         if res.text:
+            raw_text = res.text
             try:
-                object = json.loads(res.text)
+                if raw_text.startswith("```json") and raw_text.endswith("```"):
+                    raw_text = raw_text[7:-3]
+                object = json.loads(raw_text)
             except Exception as e:
                 raise AI_ObjectValidationError(
-                    message=f"Failed to parse JSON object - text: {res.text}"
+                    message=f"Failed to parse JSON object - text: {raw_text}"
                 )
             
             try:

@@ -3,11 +3,11 @@ from typing import Dict, Callable, Any, Optional
 from ..core.utils import load_api_key
 from .chat_model import OpenAIChatModel, OpenAIChatSettings, OpenAIChatConfig
 import httpx
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 class OpenAIProviderSettings(BaseModel):
     name: str = "openai"
-    base_url: Optional[str] = "https://api.openai.com/v1"
+    base_url: Optional[str] = "https://api.openai.com"
     api_key: Optional[str] = None
     organization: Optional[str] = None
     project: Optional[str] = None
@@ -15,9 +15,8 @@ class OpenAIProviderSettings(BaseModel):
     fetch: Optional[Callable[[str], Any]] = httpx.Client
 
 class OpenAIProvider:
-    def __init__(self, settings: OpenAIProviderSettings):
-        self.settings = settings
-
+    def __init__(self, settings: Optional[OpenAIProviderSettings] = None):
+        self.settings = settings or OpenAIProviderSettings()
         self.chat = self.create_chat_model
     
     def _get_headers(self) -> Dict[str, str]:
@@ -36,24 +35,34 @@ class OpenAIProvider:
         
         return openai_headers
     
-    def create_chat_model(self, model_id: str, settings: OpenAIChatSettings) -> OpenAIChatModel:
+    def _join_url(self, path: str) -> str:
+        # Ensure base_url ends with a slash if it has a path
+        base = self.settings.base_url
+        if base and not base.endswith('/'):
+            parsed = urlparse(base)
+            if parsed.path:
+                base = base + '/'
+        
+        return urljoin(base, path.lstrip('/'))
+    
+    def create_chat_model(self, model_id: str, settings: Optional[OpenAIChatSettings] = None) -> OpenAIChatModel:
         return OpenAIChatModel(
             model_id=model_id,
-            settings=settings,
+            settings=settings or OpenAIChatSettings(),
             config=OpenAIChatConfig(
                 provider=f"{self.settings.name}.chat",
-                url=lambda path: urljoin(self.settings.base_url, path),
+                url=self._join_url,
                 headers=self._get_headers,
                 fetch=self.settings.fetch
             )
         )
     
-    def __call__(self, model_id: str, settings: OpenAIChatSettings) -> OpenAIChatModel:
-        return self.chat(model_id, settings)
+    def __call__(self, model_id: str, settings: Optional[OpenAIChatSettings] = None) -> OpenAIChatModel:
+        return self.chat(model_id, settings or OpenAIChatSettings())
 
-def openai(model_id: str, settings: OpenAIChatSettings = OpenAIChatSettings()) -> OpenAIChatModel:
+def openai(model_id: str, settings: Optional[OpenAIChatSettings] = None) -> OpenAIChatModel:
     return OpenAIProvider(
-        settings=OpenAIProviderSettings()
+        settings=settings or OpenAIProviderSettings()
     ).chat(model_id, settings)
 
 def create_openai_provider(settings: OpenAIProviderSettings) -> OpenAIProvider:
