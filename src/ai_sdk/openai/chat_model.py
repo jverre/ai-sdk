@@ -64,11 +64,11 @@ UNSUPPORTED_SYSTEM_MESSAGES = [
 
 class OpenAIChatModel(LanguageModel):
     def __init__(self, model_id: str, settings: OpenAIChatSettings, config: OpenAIChatConfig):
-        if model_id not in SUPPORTED_MODELS:
-            raise AI_UnsupportedFunctionalityError(
-                functionality="Model",
-                reason=f"This model is not supported: {model_id}"
-            )
+        # if model_id not in SUPPORTED_MODELS:
+        #     raise AI_UnsupportedFunctionalityError(
+        #         functionality="Model",
+        #         message=f"This model is not supported: {model_id}"
+        #     )
         self.default_object_generation_mode = "json"
         self.settings = settings
         self.config = config
@@ -111,8 +111,7 @@ class OpenAIChatModel(LanguageModel):
         if options.tools is not None:
             if self.model_id not in SUPPORTED_TOOL_MODELS:
                 raise AI_UnsupportedFunctionalityError(
-                    "Tool calls",
-                    f"This model does not support tool calls: {self.model_id}"
+                    "Tool calls"
                 )
             args["tools"] = [{
                 "type": "function",

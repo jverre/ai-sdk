@@ -15,8 +15,8 @@ class OpenAIProviderSettings(BaseModel):
     fetch: Optional[Callable[[str], Any]] = httpx.Client
 
 class OpenAIProvider:
-    def __init__(self, settings: OpenAIProviderSettings):
-        self.settings = settings
+    def __init__(self, settings: Optional[OpenAIProviderSettings] = None):
+        self.settings = settings or OpenAIProviderSettings()
 
         self.chat = self.create_chat_model
     
@@ -36,10 +36,10 @@ class OpenAIProvider:
         
         return openai_headers
     
-    def create_chat_model(self, model_id: str, settings: OpenAIChatSettings) -> OpenAIChatModel:
+    def create_chat_model(self, model_id: str, settings: Optional[OpenAIChatSettings] = None) -> OpenAIChatModel:
         return OpenAIChatModel(
             model_id=model_id,
-            settings=settings,
+            settings=settings or OpenAIChatSettings(),
             config=OpenAIChatConfig(
                 provider=f"{self.settings.name}.chat",
                 url=lambda path: urljoin(self.settings.base_url, path),
@@ -48,12 +48,12 @@ class OpenAIProvider:
             )
         )
     
-    def __call__(self, model_id: str, settings: OpenAIChatSettings) -> OpenAIChatModel:
-        return self.chat(model_id, settings)
+    def __call__(self, model_id: str, settings: Optional[OpenAIChatSettings] = None) -> OpenAIChatModel:
+        return self.chat(model_id, settings or OpenAIChatSettings())
 
-def openai(model_id: str, settings: OpenAIChatSettings = OpenAIChatSettings()) -> OpenAIChatModel:
+def openai(model_id: str, settings: Optional[OpenAIChatSettings] = None) -> OpenAIChatModel:
     return OpenAIProvider(
-        settings=OpenAIProviderSettings()
+        settings=settings or OpenAIProviderSettings()
     ).chat(model_id, settings)
 
 def create_openai_provider(settings: OpenAIProviderSettings) -> OpenAIProvider:
