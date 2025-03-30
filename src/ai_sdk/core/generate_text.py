@@ -73,6 +73,9 @@ def generate_text(
                     raise e
                 else:
                     retry_count += 1
+                    if retry_count >= options.max_retries:
+                        raise e
+
                     time.sleep(1.0 * (2 ** retry_count))
                     continue
             except Exception as e:

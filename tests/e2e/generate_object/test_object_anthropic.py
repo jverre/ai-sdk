@@ -5,9 +5,8 @@ from ai_sdk import generate_object
 from dotenv import load_dotenv
 import os
 from pydantic import BaseModel
-import math
-import random
 from typing import List
+from ai_sdk.core.errors import AI_APICallError
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,8 +16,8 @@ def pytest_configure(config):
     if not os.getenv("ANTHROPIC_API_KEY"):
         raise Exception("ANTHROPIC_API_KEY environment variable is not set")
 
-@pytest.mark.parametrize("model", [SUPPORTED_MODELS[0]])
-def test_generate_object(model):
+@pytest.mark.parametrize("model_id", SUPPORTED_MODELS)
+def test_generate_object(model_id):
     """Test basic text generation for each model"""
     # Define the schema using Pydantic
     class Recipe(BaseModel):
@@ -29,13 +28,21 @@ def test_generate_object(model):
     class RecipeResponse(BaseModel):
         recipe: Recipe
 
-    response = generate_object(
-        model=anthropic(model),
-        schema=RecipeResponse,
-        prompt="Generate a lasagna recipe.",
-        max_tokens=10000
-    )
+    try:
+        model = anthropic(model_id)
+        response = generate_object(
+            model=model,
+            schema=RecipeResponse,
+            prompt="Generate a very short lasagna recipe.",
+            max_tokens=4096,
+            max_retries=1
+        )
+    except AI_APICallError as e:
+        if e.status_code == 529:
+            pytest.skip("Anthropic server is overloaded")
+        else:
+            raise e
+    
     
     assert response.object is not None
     assert response.usage.total_tokens > 0
-    print(response.object)

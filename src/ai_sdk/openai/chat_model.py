@@ -46,9 +46,6 @@ SUPPORTED_IMAGE_MODELS = [
 SUPPORTED_TOOL_MODELS = [
     "gpt-4o",
     "gpt-4o-mini",
-    "gpt-4-turbo",
-    "gpt-4",
-    "gpt-3.5-turbo",
     "o1",
     "o3-mini"
 ]
@@ -56,11 +53,13 @@ SUPPORTED_TOOL_MODELS = [
 SUPPORTED_JSON_MODELS = [
     "gpt-4o",
     "gpt-4o-mini",
-    "gpt-4-turbo",
-    "gpt-4",
-    "gpt-3.5-turbo",
     "o1",
     "o3-mini"
+]
+
+UNSUPPORTED_SYSTEM_MESSAGES = [
+    "o1-mini",
+    "o1-preview"
 ]
 
 class OpenAIChatModel(LanguageModel):
@@ -80,6 +79,8 @@ class OpenAIChatModel(LanguageModel):
     def _convert_finish_reason(self, finish_reason: str) -> FinishReason:
         if finish_reason == "tool_calls":
             return "tool-calls"
+        elif finish_reason == "content_filter":
+            return "content-filter"
         else:
             return finish_reason
         
@@ -208,10 +209,16 @@ class OpenAIChatModel(LanguageModel):
 
         for message in messages:
             if message.role == "system":
-                res.append({
-                    "role": "developer",
-                    "content": message.content
-                })
+                if self.model_id in UNSUPPORTED_SYSTEM_MESSAGES:
+                    res.append({
+                        "role": "assistant",
+                        "content":  message.content
+                    })
+                else:
+                    res.append({
+                        "role": "developer",
+                        "content": message.content
+                    })
             elif message.role == "user":
                 if isinstance(message.content, str):
                     res.append({
