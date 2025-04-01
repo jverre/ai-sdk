@@ -6,7 +6,7 @@ from ..core.errors import AI_APICallError
 import json
 import datetime
 import validators
-
+import opik
 
 class OpenRouterChatSettings(BaseModel):
     logit_bias: Optional[Dict[float, float]] = None
@@ -38,6 +38,7 @@ class OpenRouterChatModel(LanguageModel):
         else:
             return finish_reason
     
+    @opik.track
     def _get_args(self, options: LanguageModelCallOptions):
         warnings = []
 
@@ -178,6 +179,7 @@ class OpenRouterChatModel(LanguageModel):
                 })
         return res
 
+    @opik.track
     def _parse_tool_calls(self, result: Any) -> List[ToolCallPart]:
         tool_calls = []
 
@@ -195,6 +197,7 @@ class OpenRouterChatModel(LanguageModel):
                     ))
         return tool_calls
 
+    @opik.track(type="llm")
     def do_generate(self, options: LanguageModelCallOptions) -> LanguageModelCallResult:
         args, warnings = self._get_args(options)
 
