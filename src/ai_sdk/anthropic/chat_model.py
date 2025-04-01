@@ -9,6 +9,9 @@ import json
 import datetime
 import uuid
 from typing import Tuple
+import opik
+from opik import opik_context
+
 SUPPORTED_MODELS = [
     "claude-3-7-sonnet-20250219",
     "claude-3-5-sonnet-20241022",
@@ -197,6 +200,7 @@ class AnthropicChatModel(LanguageModel):
 
         return res, system
 
+    @opik.track
     def _get_args(self, options: LanguageModelCallOptions):
         warnings = []
 
@@ -304,6 +308,7 @@ class AnthropicChatModel(LanguageModel):
             return True
         return False
 
+    @opik.track(type="llm")
     def do_generate(self, options: LanguageModelCallOptions) -> LanguageModelCallResult:
         args, warnings = self._get_args(options)
         
@@ -326,6 +331,14 @@ class AnthropicChatModel(LanguageModel):
                     response_body = result,
                     is_retryable = self._is_retryable(response.status_code)
                 )
+            
+            # Log the usage
+            opik_context.update_current_span(
+                usage={
+                    "prompt_tokens": result["usage"]["prompt_tokens"],
+                    "completion_tokens": result["usage"]["completion_tokens"]
+                }
+            )
 
             return LanguageModelCallResult(
                 text = result["content"][0]["text"] if result["content"][0]["type"] == "text" else "",

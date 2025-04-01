@@ -6,7 +6,8 @@ from ..core.errors import AI_APICallError, AI_UnsupportedFunctionalityError
 import json
 import datetime
 import validators
-
+import opik
+from opik import opik_context
 
 class OpenAIChatSettings(BaseModel):
     logit_bias: Optional[Dict[float, float]] = None
@@ -67,7 +68,7 @@ class OpenAIChatModel(LanguageModel):
         if model_id not in SUPPORTED_MODELS:
             raise AI_UnsupportedFunctionalityError(
                 functionality="Model",
-                reason=f"This model is not supported: {model_id}"
+                message=f"This model is not supported: {model_id}"
             )
         self.default_object_generation_mode = "json"
         self.settings = settings
@@ -174,6 +175,7 @@ class OpenAIChatModel(LanguageModel):
             return True
         return False
 
+    @opik.track
     def _convert_tool_calls_to_openai_format(self, tool_calls: list[ToolCallPart]) -> list[Dict[str, Any]]:
         """
         Converts internal ToolCallPart format to OpenAI's tool_calls format.
@@ -204,6 +206,7 @@ class OpenAIChatModel(LanguageModel):
         
         return openai_tool_calls
 
+    @opik.track
     def _convert_messages(self, messages: List[Message]) -> List[Dict[str, Any]]:
         res = []
 
@@ -278,6 +281,7 @@ class OpenAIChatModel(LanguageModel):
                 })
         return res
 
+    @opik.track
     def _parse_tool_calls(self, result: Any) -> List[ToolCallPart]:
         tool_calls = []
 
@@ -295,6 +299,8 @@ class OpenAIChatModel(LanguageModel):
                     ))
         return tool_calls
 
+    
+    @opik.track(type="llm")
     def do_generate(self, options: LanguageModelCallOptions) -> LanguageModelCallResult:
         args, warnings = self._get_args(options)
 
@@ -317,6 +323,14 @@ class OpenAIChatModel(LanguageModel):
                     is_retryable = self._is_retryable(response.status_code)
                 )
             
+            # Log the usage
+            opik_context.update_current_span(
+                usage={
+                    "prompt_tokens": result["usage"]["prompt_tokens"],
+                    "completion_tokens": result["usage"]["completion_tokens"]
+                }
+            )
+
             return LanguageModelCallResult(
                 text = result["choices"][0]["message"]["content"],
                 finish_reason = self._convert_finish_reason(result["choices"][0]["finish_reason"]),
