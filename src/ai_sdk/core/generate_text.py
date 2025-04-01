@@ -6,7 +6,9 @@ from .tool_calls import execute_tool_calls
 from .errors import AI_APICallError
 from .convert_response import convert_to_response_messages
 import time
+import opik
 
+@opik.track
 def generate_text(
     model: LanguageModel,
     system: Optional[str] = None,
