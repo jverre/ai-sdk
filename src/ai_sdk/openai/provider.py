@@ -7,7 +7,7 @@ from urllib.parse import urljoin, urlparse
 
 class OpenAIProviderSettings(BaseModel):
     name: str = "openai"
-    base_url: Optional[str] = "https://api.openai.com/v1"
+    base_url: Optional[str] = "https://api.openai.com"
     api_key: Optional[str] = None
     organization: Optional[str] = None
     project: Optional[str] = None

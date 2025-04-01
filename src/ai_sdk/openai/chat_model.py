@@ -298,7 +298,6 @@ class OpenAIChatModel(LanguageModel):
                         args=args_dict  # Now passing a dictionary instead of a string
                     ))
         return tool_calls
-
     
     @opik.track(type="llm")
     def do_generate(self, options: LanguageModelCallOptions) -> LanguageModelCallResult:
@@ -312,16 +311,17 @@ class OpenAIChatModel(LanguageModel):
                 timeout = 60
             )
 
-            result = response.json()
             if response.status_code != 200:
                 raise AI_APICallError(
                     url = self.config.url("/v1/chat/completions"),
                     request_body_values = args,
                     status_code = response.status_code,
                     response_headers = response.headers,
-                    response_body = result,
+                    response_body = response.text,
                     is_retryable = self._is_retryable(response.status_code)
                 )
+            
+            result = response.json()
             
             # Log the usage
             opik_context.update_current_span(
