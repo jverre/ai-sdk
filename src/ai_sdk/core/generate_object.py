@@ -8,7 +8,9 @@ import time
 from pydantic import BaseModel
 from .types import Tool, ObjectResult
 import json
+import opik
 
+@opik.track
 def _parse_responses(object_generation_mode: str, res: LanguageModelCallResult, schema: BaseModel) -> BaseModel:
     if object_generation_mode == "json" or object_generation_mode == "text":
         if res.text:
@@ -59,6 +61,7 @@ def _parse_responses(object_generation_mode: str, res: LanguageModelCallResult, 
 
     return object
 
+@opik.track
 def _inject_json_schema(prompt: Optional[str], schema: BaseModel) -> str:
     DEFAULT_SCHEMA_PREFIX = 'JSON schema:'
     DEFAULT_SCHEMA_SUFFIX = "You MUST answer with a JSON object that matches the JSON schema above. Do not include any other text, only the JSON object and DO NOT return the data in markdown format."
@@ -74,6 +77,7 @@ def _inject_json_schema(prompt: Optional[str], schema: BaseModel) -> str:
     # Filter out None values and join with newlines
     return '\n'.join(line for line in components if line is not None)
 
+@opik.track
 def generate_object(
     model: LanguageModel,
     schema: BaseModel,

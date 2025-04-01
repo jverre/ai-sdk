@@ -1,6 +1,8 @@
 from typing import List, Optional, Dict, Any, Callable
 from .types import AssistantMessage, ResponseMessage, TextPart, ToolCallPart, ToolResultPart, ToolMessage
+import opik
 
+@opik.track
 def convert_to_response_messages(
     text: Optional[str] = "",
     tools: Dict[str, Any] = None,

@@ -2,7 +2,9 @@ from typing import List, Dict
 from .types import ToolCallPart, ToolResultPart, Tool
 from .errors import AI_ToolExecutionError
 import json
+import opik
 
+@opik.track
 def execute_tool_calls(
     tool_calls: List[ToolCallPart],
     tools: Dict[str, Tool]
