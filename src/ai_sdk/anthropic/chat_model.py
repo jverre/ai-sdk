@@ -335,8 +335,8 @@ class AnthropicChatModel(LanguageModel):
             # Log the usage
             opik_context.update_current_span(
                 usage={
-                    "prompt_tokens": result["usage"]["prompt_tokens"],
-                    "completion_tokens": result["usage"]["completion_tokens"]
+                    "prompt_tokens": result["usage"]["input_tokens"],
+                    "completion_tokens": result["usage"]["output_tokens"]
                 }
             )
 
