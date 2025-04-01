@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 
 class AnthropicProviderSettings(BaseModel):
     name: str = "anthropic"
-    base_url: Optional[str] = "https://api.anthropic.com/v1"
+    base_url: Optional[str] = "https://api.anthropic.com"
     api_key: Optional[str] = None
     headers: Optional[Dict[str, str]] = None
     fetch: Optional[Callable[[str], Any]] = httpx.Client
