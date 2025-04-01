@@ -3,7 +3,7 @@ from typing import Dict, Callable, Any, Optional
 from ..core.utils import load_api_key
 from .chat_model import OpenAIChatModel, OpenAIChatSettings, OpenAIChatConfig
 import httpx
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 class OpenAIProviderSettings(BaseModel):
     name: str = "openai"
@@ -36,13 +36,25 @@ class OpenAIProvider:
         
         return openai_headers
     
+    def _join_url(self, path: str) -> str:
+        # Ensure base_url ends with a slash if it has a path
+        base = self.settings.base_url
+        
+        if not base.endswith('/'):
+            base = base + '/'
+        
+        if path.startswith('/'):
+            path = path[1:]
+
+        return base + path
+    
     def create_chat_model(self, model_id: str, settings: OpenAIChatSettings) -> OpenAIChatModel:
         return OpenAIChatModel(
             model_id=model_id,
             settings=settings,
             config=OpenAIChatConfig(
                 provider=f"{self.settings.name}.chat",
-                url=lambda path: urljoin(self.settings.base_url, path),
+                url=self._join_url,
                 headers=self._get_headers,
                 fetch=self.settings.fetch
             )

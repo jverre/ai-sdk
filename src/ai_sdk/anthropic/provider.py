@@ -29,13 +29,25 @@ class AnthropicProvider:
         
         return anthropic_headers
     
+    def _join_url(self, path: str) -> str:
+        # Ensure base_url ends with a slash if it has a path
+        base = self.settings.base_url
+        
+        if not base.endswith('/'):
+            base = base + '/'
+        
+        if path.startswith('/'):
+            path = path[1:]
+
+        return base + path
+    
     def create_chat_model(self, model_id: str, settings: AnthropicChatSettings) -> AnthropicChatModel:
         return AnthropicChatModel(
             model_id=model_id,
             settings=settings,
             config=AnthropicChatConfig(
                 provider=f"{self.settings.name}.chat",
-                url=lambda path: urljoin(self.settings.base_url, path),
+                url=self._join_url,
                 headers=self._get_headers,
                 fetch=self.settings.fetch
             )
