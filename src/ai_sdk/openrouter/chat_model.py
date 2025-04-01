@@ -1,76 +1,29 @@
 from ..core.language_model import LanguageModel, LanguageModelCallOptions, LanguageModelCallResult, LanguageModelUsage, LanguageModelRequest, LanguageModelResponse
 from typing import Optional, Dict, Union, Any, List
 from pydantic import BaseModel
-from ..core.types import UnsupportedSettingWarning, Message, ToolCallPart, FinishReason
-from ..core.errors import AI_APICallError, AI_UnsupportedFunctionalityError
+from ..core.types import Message, ToolCallPart, FinishReason
+from ..core.errors import AI_APICallError
 import json
 import datetime
 import validators
 import opik
-from opik import opik_context
 
-class OpenAIChatSettings(BaseModel):
+class OpenRouterChatSettings(BaseModel):
     logit_bias: Optional[Dict[float, float]] = None
     log_probs: Optional[Union[int, bool]] = None
     parallel_tool_calls: Optional[bool] = None
     structured_outputs: Optional[bool] = None
     user: Optional[str] = None
 
-class OpenAIChatConfig(BaseModel):
+class OpenRouterChatConfig(BaseModel):
     provider: str
     url: Any
     headers: Any
     fetch: Any
 
-SUPPORTED_MODELS = [
-    "gpt-4o",
-    "gpt-4o-mini",
-    "gpt-4-turbo",
-    "gpt-4",
-    "gpt-3.5-turbo",
-    "o1",
-    "o1-mini",
-    "o1-preview",
-    "o3-mini",
-    "chatgpt-4o-latest"
-]
-
-SUPPORTED_IMAGE_MODELS = [
-    "gpt-4o",
-    "gpt-4o-mini",
-    "gpt-4-turbo",
-    "o1",
-    "o1-mini",
-    "chatgpt-4o-latest"
-]
-
-SUPPORTED_TOOL_MODELS = [
-    "gpt-4o",
-    "gpt-4o-mini",
-    "o1",
-    "o3-mini"
-]
-
-SUPPORTED_JSON_MODELS = [
-    "gpt-4o",
-    "gpt-4o-mini",
-    "o1",
-    "o3-mini"
-]
-
-UNSUPPORTED_SYSTEM_MESSAGES = [
-    "o1-mini",
-    "o1-preview"
-]
-
-class OpenAIChatModel(LanguageModel):
-    def __init__(self, model_id: str, settings: OpenAIChatSettings, config: OpenAIChatConfig):
-        if model_id not in SUPPORTED_MODELS:
-            raise AI_UnsupportedFunctionalityError(
-                functionality="Model",
-                message=f"This model is not supported: {model_id}"
-            )
-        self.default_object_generation_mode = "json"
+class OpenRouterChatModel(LanguageModel):
+    def __init__(self, model_id: str, settings: OpenRouterChatSettings, config: OpenRouterChatConfig):
+        self.default_object_generation_mode = "text"
         self.settings = settings
         self.config = config
         
@@ -84,7 +37,8 @@ class OpenAIChatModel(LanguageModel):
             return "content-filter"
         else:
             return finish_reason
-        
+    
+    @opik.track
     def _get_args(self, options: LanguageModelCallOptions):
         warnings = []
 
@@ -92,29 +46,21 @@ class OpenAIChatModel(LanguageModel):
         args["model"] = self.model_id
         args["messages"] = self._convert_messages(options.messages)
         if options.max_tokens is not None:
-            args["max_completion_tokens"] = options.max_tokens
+            args["max_tokens"] = options.max_tokens
         if options.temperature is not None:
             args["temperature"] = options.temperature
         if options.stop_sequences is not None:
             args["stop"] = options.stop_sequences
         if options.top_p is not None:
             args["top_p"] = options.top_p
-        
         if options.top_k is not None:
-            warnings.append(UnsupportedSettingWarning(
-                setting="top_k"
-            ))
-
+            args["top_k"] = options.top_k
         if options.presence_penalty is not None:
             args["presence_penalty"] = options.presence_penalty
         if options.frequency_penalty is not None:
             args["frequency_penalty"] = options.frequency_penalty
+        
         if options.tools is not None:
-            if self.model_id not in SUPPORTED_TOOL_MODELS:
-                raise AI_UnsupportedFunctionalityError(
-                    "Tool calls",
-                    f"This model does not support tool calls: {self.model_id}"
-                )
             args["tools"] = [{
                 "type": "function",
                 "function": {
@@ -127,38 +73,8 @@ class OpenAIChatModel(LanguageModel):
         if options.seed is not None:
             args["seed"] = options.seed
 
-        if options.response_format is not None:
-            args["response_format"] = {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "json_schema",
-                    "schema": options.response_format.model_json_schema()
-                }
-            }
-
         return args, warnings
         
-    def _get_provider_metadata(self, response: Dict[str, Any]) -> Dict[str, Any]:
-        provider_metadata = {"openai": {}}
-
-        completion_token_details = response.get("usage", {}).get("completion_tokens_details")
-        prompt_token_details = response.get("usage", {}).get("prompt_tokens_details")
-
-        if completion_token_details:
-            if completion_token_details.get("reasoning_tokens") is not None:
-                provider_metadata["openai"]["reasoning_tokens"] = completion_token_details["reasoning_tokens"]
-            
-            if completion_token_details.get("accepted_prediction_tokens") is not None:
-                provider_metadata["openai"]["accepted_prediction_tokens"] = completion_token_details["accepted_prediction_tokens"]
-            
-            if completion_token_details.get("rejected_prediction_tokens") is not None:
-                provider_metadata["openai"]["rejected_prediction_tokens"] = completion_token_details["rejected_prediction_tokens"]
-
-        if prompt_token_details and prompt_token_details.get("cached_tokens") is not None:
-            provider_metadata["openai"]["cached_prompt_tokens"] = prompt_token_details["cached_tokens"]
-
-        return provider_metadata
-
     def _is_retryable(self, response_code: int) -> bool:
         if response_code in [408, 409, 429] or response_code >= 500:
             return True
@@ -166,36 +82,25 @@ class OpenAIChatModel(LanguageModel):
         return False
 
     def supports_json_mode(self) -> bool:
-        if self.model_id in SUPPORTED_JSON_MODELS:
-            return True
-        return False
-    
-    def supports_tool_calls(self) -> bool:
-        if self.model_id in SUPPORTED_TOOL_MODELS:
-            return True
-        return False
+        return True
 
-    @opik.track
-    def _convert_tool_calls_to_openai_format(self, tool_calls: list[ToolCallPart]) -> list[Dict[str, Any]]:
+    def supports_tool_calls(self) -> bool:
+        return True
+
+    def _convert_tool_calls_to_openrouter_format(self, tool_calls: list[ToolCallPart]) -> list[Dict[str, Any]]:
         """
-        Converts internal ToolCallPart format to OpenAI's tool_calls format.
+        Converts internal ToolCallPart format to OpenRouter's tool_calls format.
         
         Args:
             tool_calls: List of ToolCallPart objects
             
         Returns:
-            List of tool calls in OpenAI's format
+            List of tool calls in OpenRouter's format
         """
-        openai_tool_calls = []
+        openrouter_tool_calls = []
         
         for tool_call in tool_calls:
-            if self.model_id not in SUPPORTED_TOOL_MODELS:
-                raise AI_UnsupportedFunctionalityError(
-                    "Tool calls",
-                    f"This model does not support tool calls: {self.model_id}"
-                )
-        
-            openai_tool_calls.append({
+            openrouter_tool_calls.append({
                 "id": tool_call.tool_call_id,
                 "type": "function",
                 "function": {
@@ -204,24 +109,28 @@ class OpenAIChatModel(LanguageModel):
                 }
             })
         
-        return openai_tool_calls
+        return openrouter_tool_calls
 
-    @opik.track
     def _convert_messages(self, messages: List[Message]) -> List[Dict[str, Any]]:
         res = []
 
         for message in messages:
             if message.role == "system":
-                if self.model_id in UNSUPPORTED_SYSTEM_MESSAGES:
-                    res.append({
-                        "role": "assistant",
-                        "content":  message.content
-                    })
-                else:
-                    res.append({
-                        "role": "developer",
-                        "content": message.content
-                    })
+                res.append({
+                    "role": "system",
+                    "content":  message.content
+                })
+            elif message.role == "developer":
+                res.append({
+                    "role": "developer",
+                    "content": message.content
+                })
+            elif message.role == "assistant":
+                res.append({
+                    "role": "assistant",
+                    "content": message.content,
+                    "tool_calls": self._convert_tool_calls_to_openrouter_format(message.tool_calls or [])
+                })
             elif message.role == "user":
                 if isinstance(message.content, str):
                     res.append({
@@ -237,11 +146,6 @@ class OpenAIChatModel(LanguageModel):
                                 "text": part.text
                             })
                         elif part.type == "image":
-                            if self.model_id not in SUPPORTED_IMAGE_MODELS:
-                                raise AI_UnsupportedFunctionalityError(
-                                    "Image input",
-                                    f"This model does not support image input: {self.model_id}"
-                                )
                             if validators.url(part.image):
                                 content.append({
                                     "type": "image_url",
@@ -268,12 +172,6 @@ class OpenAIChatModel(LanguageModel):
                     "tool_calls": self._convert_tool_calls_to_openai_format(message.tool_calls or [])
                 })
             elif message.role == "tool":
-                if self.model_id not in SUPPORTED_TOOL_MODELS:
-                    raise AI_UnsupportedFunctionalityError(
-                        "Tool calls",
-                        f"This model does not support tool calls: {self.model_id}"
-                    )
-
                 res.append({
                     "role": "tool",
                     "content": message.content,
@@ -298,12 +196,13 @@ class OpenAIChatModel(LanguageModel):
                         args=args_dict  # Now passing a dictionary instead of a string
                     ))
         return tool_calls
-    
+
     @opik.track(type="llm")
     def do_generate(self, options: LanguageModelCallOptions) -> LanguageModelCallResult:
         args, warnings = self._get_args(options)
 
         with self.config.fetch() as client:
+            print(self.config.url("/v1/chat/completions"))
             response = client.post(
                 url = self.config.url("/v1/chat/completions"),
                 headers = self.config.headers(),
@@ -311,33 +210,34 @@ class OpenAIChatModel(LanguageModel):
                 timeout = 60
             )
 
+            result = response.json()
             if response.status_code != 200:
                 raise AI_APICallError(
                     url = self.config.url("/v1/chat/completions"),
                     request_body_values = args,
                     status_code = response.status_code,
                     response_headers = response.headers,
-                    response_body = response.text,
+                    response_body = result,
                     is_retryable = self._is_retryable(response.status_code)
                 )
             
-            result = response.json()
+            if result.get("error", None) is not None:
+                raise AI_APICallError(
+                    url = self.config.url("/v1/chat/completions"),
+                    request_body_values = args,
+                    status_code = response.status_code,
+                    response_headers = response.headers,
+                    response_body = result,
+                    is_retryable = self._is_retryable(response.status_code)
+                )
             
-            # Log the usage
-            opik_context.update_current_span(
-                usage={
-                    "prompt_tokens": result["usage"]["prompt_tokens"],
-                    "completion_tokens": result["usage"]["completion_tokens"]
-                }
-            )
-
             return LanguageModelCallResult(
                 text = result["choices"][0]["message"]["content"],
                 finish_reason = self._convert_finish_reason(result["choices"][0]["finish_reason"]),
                 tool_calls = self._parse_tool_calls(result),
                 usage = LanguageModelUsage(
-                    prompt_tokens = result["usage"]["prompt_tokens"],
-                    completion_tokens = result["usage"]["completion_tokens"]
+                    prompt_tokens = result.get("usage", {}).get("prompt_tokens", 0),
+                    completion_tokens = result.get("usage", {}).get("completion_tokens", 0)
                 ),
                 request = LanguageModelRequest(
                     body = json.dumps(args)
@@ -349,6 +249,5 @@ class OpenAIChatModel(LanguageModel):
                     model_id = result["model"],
                     body = json.dumps(result)
                 ),
-                warnings = warnings,
-                provider_metadata = self._get_provider_metadata(result)
+                warnings = warnings
             )
