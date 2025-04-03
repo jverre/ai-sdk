@@ -1,0 +1,56 @@
+import { Callout } from 'nextra/components'
+import { Steps } from 'nextra/components'
+
+# Home
+ 
+The Python AI SDK is heavily inspired (ie. a port) of the awesome
+[AI SDK](https://sdk.vercel.ai/) built by [Vercel](https://vercel.com).
+
+I have been a big fan of the Vercel AI SDK and have always wanted to use
+it as part of my Python projects and decided to recreate it in Python.
+
+<Callout type="info">
+  If you have any feedback or feature requests, just reach out on [Github](https://github.com/jverre/ai-sdk).
+</Callout>
+
+## Getting started
+
+To get started, simply follow the steps:
+
+<Steps>
+### Install the package
+
+You can install the Python AI SDK using pip:
+
+```bash
+pip install ai-sdk-python
+```
+
+### Making your first LLM call
+
+Once the package is installed, you can make your first LLM call using the `generate_text` function:
+
+```python
+from ai_sdk import generate_text
+from ai_sdk.openai import openai
+
+response = generate_text(
+    model=openai("gpt-4o"),
+    prompt="Hello, world!"
+)
+
+print(response.text)
+```
+
+### Adding tracing
+
+The Python AI SDK supports tracing which means you can save all your LLM calls for future analysis.
+
+For this, the AI SDK relies on the [Opik](https://github.com/comet-ml/opik) library. To get started,
+the only thing you need to do is configure the Opik library:
+
+```bash
+opik.configure()
+```
+</Steps>
+

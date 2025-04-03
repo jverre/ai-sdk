@@ -1,0 +1,87 @@
+import { Tabs } from 'nextra/components'
+ 
+# Models and Providers
+
+The Python AI SDK allowss you to call many different LLM models through a unified interface which makes it easy
+to switch between models.
+
+The following providers are currently supported:
+
+* [OpenAI](https://platform.openai.com/docs/guides/text)
+* [Anthropic](https://docs.anthropic.com/en/docs/welcome)
+* [OpenRouter](https://openrouter.ai/docs/quickstart)
+
+## Using a model
+
+In order to use a model from a specific provider, you will first need to import the provider and then initialize the model which
+can then be used within the `generate_text` and `generate_object` functions.
+
+<Tabs items={['OpenAI', 'Anthropic', 'OpenRouter']}>
+  <Tabs.Tab>
+    ```python
+    from ai_sdk import generate_text
+    from ai_sdk.openai import openai
+
+    response = generate_text(
+        model=openai("gpt-4o"),
+        prompt="Hello, world!"
+    )
+
+    print(response.text)
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```python
+    from ai_sdk import generate_text
+    from ai_sdk.anthropic import anthropic
+
+    response = generate_text(
+        model=anthropic("claude-3-5-sonnet-20240620"),
+        prompt="Hello, world!"
+    )
+
+    print(response.text)
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```python
+    from ai_sdk import generate_text
+    from ai_sdk.openrouter import openrouter
+
+    response = generate_text(
+        model=openrouter("openai/gpt-4o"),
+        prompt="Hello, world!"
+    )
+
+    print(response.text)
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## Advanced Usage
+
+### Customizing provider settings
+
+You can customize the provider settings by utilizing the `create_<Provider>_provider` function. This allows you to
+pass in additional settings like API keys, base URLs, etc. For example, if you want to use the OpenAI provider with a
+custom base URL, you can do the following:
+
+```python
+from ai_sdk.openai import create_openai_provider, OpenAIProviderSettings
+
+provider = create_openai_provider(
+    settings=OpenAIProviderSettings(
+        base_url="https://api.openai.com",
+        api_key="your_api_key"
+    )
+)
+
+response = generate_text(
+    model=provider("gpt-4o"),   
+    prompt="Hello, world!"
+)
+
+print(response.text)
+```
+
+For a full list of available settings for each provider, please refer to each provider's documentation.

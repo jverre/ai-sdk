@@ -1,0 +1,62 @@
+import { Cards } from 'nextra/components'
+import { FiMessageSquare, FiGrid, FiTool } from 'react-icons/fi'
+import { Callout } from 'nextra/components'
+
+# Overview
+
+The AI SDK was heavily inspired by the [AI SDK](https://sdk.vercel.ai/) built by the Vercel team. This SDK is
+a partial port of that JavaScript SDK to Python.
+
+## Installation
+
+```bash
+pip install ai-sdk-python
+```
+
+## Usage
+
+The AI SDK is designed to make it easy to work with different AI providers whether that is to generate text
+or structured outputs. All you need to do is import the library and call the `generate_text` function to get
+started:
+
+```python
+from ai_sdk import generate_text
+from ai_sdk.openai import openai
+
+response = generate_text(
+    model=openai("gpt-4o"),
+    prompt="Hello, world!"
+)
+
+print(response.text)
+```
+
+You can learn more about using the AI SDK in our guides:
+
+<Cards>
+  <Cards.Card
+    icon={<FiMessageSquare />}
+    title="Prompts"
+    href="/guides/prompts"
+    arrow
+  />
+  <Cards.Card
+    icon={<FiGrid />}
+    title="Structured Outputs"
+    href="/guides/structured-outputs"
+    arrow
+  />
+  <Cards.Card
+    icon={<FiTool />}
+    title="Tools"
+    href="/guides/tools"
+    arrow
+  />
+</Cards>
+
+You can also find a full list of all the providers we support
+in the Providers section.
+
+<Callout type="info">
+  If you would like us to support a new provider, please reach out to us on [Github](https://github.com/jverre/ai-sdk/issues).
+</Callout>

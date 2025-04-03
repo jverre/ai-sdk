@@ -8,3 +8,5 @@ __pycache__/
 .pytest_cache
 **.egg-info
 dist/
+.venv/
+node_modules/

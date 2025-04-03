@@ -1,0 +1,193 @@
+import { Callout } from 'nextra/components'
+
+# OpenRouter Provider
+
+The OpenRouter provider allows you to access various AI models through OpenRouter's API. It provides a unified interface for multiple model providers with support for advanced features like image understanding and tool calls.
+
+## Basic Usage
+
+The simplest way to use OpenRouter models is with the `openrouter` function:
+
+```python
+from ai_sdk import generate_text
+from ai_sdk.openrouter import openrouter
+
+response = generate_text(
+    model=openrouter("openai/gpt-4o"),
+    prompt="Hello, world!"
+)
+```
+
+## Features
+
+OpenRouter supports all major capabilities across its models:
+
+- ✅ Chat Conversations
+- ✅ Image Understanding
+- ✅ Tool Calls
+- ✅ JSON Mode
+- ✅ System Messages
+
+## Configuration
+
+You can configure the OpenRouter provider with various settings:
+
+```python
+from ai_sdk.openrouter import create_openrouter_provider, OpenRouterProviderSettings
+
+provider = create_openrouter_provider(
+    settings=OpenRouterProviderSettings(
+        api_key="your-api-key",  # Optional: can also use OPENROUTER_API_KEY env var
+        base_url="https://openrouter.ai/api",  # Optional: defaults to OpenRouter's API
+        headers={"Custom-Header": "value"}  # Optional: additional headers
+    )
+)
+
+model = provider("openai/gpt-4o")
+```
+
+### Authentication
+
+The provider will look for your API key in the following order:
+1. The `api_key` parameter in settings
+2. The `OPENROUTER_API_KEY` environment variable
+
+<Callout type="warning">
+  Never hardcode your API key in your code. Use environment variables instead.
+</Callout>
+
+## Model Settings
+
+When creating a model, you can customize its behavior:
+
+```python
+from ai_sdk.openrouter import openrouter, OpenRouterChatSettings
+
+model = openrouter(
+    "your-chosen-model", 
+    settings=OpenRouterChatSettings(
+        logit_bias=None,  # Optional: adjust token probabilities
+        parallel_tool_calls=True,  # Optional: enable parallel tool execution
+        structured_outputs=True,  # Optional: enable structured output format
+        user="user-id"  # Optional: user identifier
+    )
+)
+```
+
+## Working with Images
+
+OpenRouter supports image input for compatible models:
+
+```python
+response = generate_text(
+    model=openrouter("openai/gpt-4o"),
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "What's in this image?"},
+            {"type": "image", "image": "https://example.com/image.jpg"}
+        ]
+    }]
+)
+```
+
+## Using Tool Calls
+
+Tools can be defined using Pydantic models and optional execution functions:
+
+```python
+from pydantic import BaseModel
+from ai_sdk import generate_text
+from typing import Dict
+
+class WeatherTool(BaseModel):
+    location: str
+    units: str = "celsius"
+
+# Define tools with optional execution functions
+tools: Dict[str, Tool] = {
+    "weather": {
+        "description": "Get the weather in a location",
+        "parameters": WeatherTool,
+        "execute": lambda location: {
+            "location": location,
+            "temperature": 22,
+            "condition": "sunny"
+        }
+    }
+}
+
+response = generate_text(
+    model=openrouter("openai/gpt-4o"),  # or openrouter("your-model")
+    prompt="What's the weather in Paris?",
+    tools=tools,
+    max_steps=2  # Allow multiple steps for tool execution
+)
+
+# Access results
+print(response.text)  # Final response
+print(response.tool_calls)  # List of tool calls made
+print(response.tool_results)  # List of tool results
+```
+
+The response includes:
+- `text`: The final generated text
+- `tool_calls`: List of `ToolCallPart` objects containing:
+  - `tool_call_id`: Unique identifier for the call
+  - `tool_name`: Name of the tool called
+  - `args`: Dictionary of arguments passed
+- `tool_results`: List of `ToolResultPart` objects containing:
+  - `tool_call_id`: Matching ID from the call
+  - `tool_name`: Name of the tool
+  - `result`: The result returned
+  - `is_error`: Optional error flag
+
+<Callout type="info">
+  When `max_steps` is greater than 1, the model can make tool calls and use the results in its final response.
+</Callout>
+
+## Message Types
+
+OpenRouter supports various message types:
+- `system`: System-level instructions
+- `developer`: Developer-specific instructions
+- `user`: User messages (text or images)
+- `assistant`: AI responses
+- `tool`: Tool call results
+
+```python
+response = generate_text(
+    model=openrouter("your-chosen-model"),
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant"},
+        {"role": "user", "content": "Hello!"},
+        {"role": "assistant", "content": "Hi there!"},
+        {"role": "user", "content": "How are you?"}
+    ]
+)
+```
+
+<Callout type="info">
+  OpenRouter automatically handles the conversion between different provider message formats, making it easier to work with various models through a single interface.
+</Callout>
+
+## Error Handling
+
+OpenRouter provides detailed error information when requests fail:
+
+```python
+try:
+    response = generate_text(
+        model=openrouter("your-chosen-model"),
+        prompt="Your prompt"
+    )
+except AI_APICallError as e:
+    print(f"API call failed:")
+    print(f"  Status: {e.status_code}")
+    print(f"  Response: {e.response_body}")
+    print(f"  Retryable: {e.is_retryable}")
+```
+
+<Callout type="warning">
+  Always implement proper error handling in production. OpenRouter will indicate if errors are retryable through the `is_retryable` flag.
+</Callout>

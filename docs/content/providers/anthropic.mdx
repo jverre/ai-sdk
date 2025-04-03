@@ -1,0 +1,160 @@
+import { Callout } from 'nextra/components'
+
+# Anthropic Provider
+
+The Anthropic provider gives you access to Claude models within the AI SDK. It supports Claude 3 models with capabilities for chat, image understanding, and tool use.
+
+## Basic Usage
+
+The simplest way to use Anthropic models is with the `anthropic` function:
+
+```python
+from ai_sdk import generate_text
+from ai_sdk.anthropic import anthropic
+
+response = generate_text(
+    model=anthropic("claude-3-opus-20240229"),
+    prompt="Hello, world!"
+)
+```
+
+
+## Supported Models
+
+The following table shows all supported Claude models and their capabilities:
+
+| Model | Chat | Images | Tool Calls |
+|-------|------|--------|------------|
+| claude-3-7-sonnet-20250219 | ✅ | ✅ | ✅ |
+| claude-3-5-sonnet-20241022 | ✅ | ✅ | ✅ |
+| claude-3-5-sonnet-20240620 | ✅ | ✅ | ✅ |
+| claude-3-5-haiku-20241022 | ✅ | ❌ | ✅ |
+| claude-3-opus-20240229 | ✅ | ✅ | ✅ |
+| claude-3-sonnet-20240229 | ✅ | ✅ | ❌ |
+| claude-3-haiku-20240307 | ✅ | ✅ | ✅ |
+
+<Callout type="info">
+  All models support basic chat functionality. Image and tool call support varies by model.
+</Callout>
+
+## Configuration
+
+You can configure the Anthropic provider with various settings:
+
+```python
+from ai_sdk.anthropic import create_anthropic_provider, AnthropicProviderSettings
+
+provider = create_anthropic_provider(
+    settings=AnthropicProviderSettings(
+        api_key="your-api-key",  # Optional: can also use ANTHROPIC_API_KEY env var
+        base_url="https://api.anthropic.com",  # Optional: defaults to Anthropic's API
+        headers={"Custom-Header": "value"}  # Optional: additional headers
+    )
+)
+
+model = provider("claude-3-opus-20240229")
+```
+
+### Authentication
+
+The provider will look for your API key in the following order:
+1. The `api_key` parameter in settings
+2. The `ANTHROPIC_API_KEY` environment variable
+
+<Callout type="warning">
+  Never hardcode your API key in your code. Use environment variables instead.
+</Callout>
+
+## Model Settings
+
+When creating a model, you can customize its behavior:
+
+```python
+from ai_sdk.anthropic import anthropic, AnthropicChatSettings
+
+model = anthropic(
+    "claude-3-opus-20240229", 
+    settings=AnthropicChatSettings(
+        sendReasoning=True  # Enable reasoning in responses
+    )
+)
+```
+
+## Working with Images
+
+For models that support image input, you can pass images via URL or base64:
+
+```python
+response = generate_text(
+    model=anthropic("claude-3-opus-20240229"),
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "What's in this image?"},
+            {"type": "image", "image": "https://example.com/image.jpg"}
+        ]
+    }]
+)
+```
+
+<Callout type="info">
+  Image support is available on specific Claude 3 models only. Check `SUPPORTED_IMAGE_MODELS` for compatibility.
+</Callout>
+
+## Using Tool Calls
+
+Tools can be defined using Pydantic models and optional execution functions:
+
+```python
+from pydantic import BaseModel
+from ai_sdk import generate_text
+from typing import Dict
+
+class WeatherTool(BaseModel):
+    location: str
+    units: str = "celsius"
+
+# Define tools with optional execution functions
+tools: Dict[str, dict] = {
+    "weather": {
+        "description": "Get the weather in a location",
+        "parameters": WeatherTool,
+        "execute": lambda args: {
+            "temperature": 22,
+            "condition": "sunny"
+        }
+    }
+}
+
+response = generate_text(
+    model=anthropic("claude-3-opus-20240229"),
+    prompt="What's the weather in Paris?",
+    tools=tools,
+    max_steps=2  # Allow multiple steps for tool execution
+)
+
+# Access results
+print(response.text)  # Final response
+print(response.tool_calls)  # List of tool calls made
+print(response.tool_results)  # List of tool results
+```
+
+The response includes:
+- `text`: The final generated text
+- `tool_calls`: List of `ToolCallPart` objects containing:
+  - `tool_call_id`: Unique identifier for the call
+  - `tool_name`: Name of the tool called
+  - `args`: Dictionary of arguments passed
+- `tool_results`: List of `ToolResultPart` objects containing:
+  - `tool_call_id`: Matching ID from the call
+  - `tool_name`: Name of the tool
+  - `result`: The result returned
+  - `is_error`: Optional error flag
+
+<Callout type="info">
+  When `max_steps` is greater than 1, the model can make tool calls and use the results in its final response.
+</Callout>
+
+<Callout type="warning">
+  Not all Claude models support tool calls. Check the compatibility table above for supported models.
+</Callout>

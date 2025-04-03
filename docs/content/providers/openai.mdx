@@ -1,0 +1,178 @@
+import { Callout } from 'nextra/components'
+
+# OpenAI Provider
+
+The OpenAI provider allows you to use OpenAI's models within the AI SDK. It supports chat-based models like GPT-4 and GPT-3.5.
+
+## Basic Usage
+
+The simplest way to use OpenAI models is with the `openai` function:
+
+```python
+from ai_sdk import generate_text
+from ai_sdk.openai import openai
+
+response = generate_text(
+    model=openai("gpt-4"),
+    prompt="Hello, world!"
+)
+```
+
+
+## Supported Models
+
+The following table shows all supported OpenAI models and their capabilities:
+
+| Model | Chat | Images | Tool Calls | JSON Mode | System Messages |
+|-------|------|--------|------------|-----------|-----------------|
+| gpt-4o | ✅ | ✅ | ✅ | ✅ | ✅ |
+| gpt-4o-mini | ✅ | ✅ | ✅ | ✅ | ✅ |
+| gpt-4-turbo | ✅ | ✅ | ❌ | ❌ | ✅ |
+| gpt-4 | ✅ | ❌ | ❌ | ❌ | ✅ |
+| gpt-3.5-turbo | ✅ | ❌ | ❌ | ❌ | ✅ |
+| o1 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| o1-mini | ✅ | ✅ | ✅ | ✅ | ❌ |
+| o1-preview | ✅ | ❌ | ❌ | ❌ | ❌ |
+| o3-mini | ✅ | ❌ | ✅ | ✅ | ✅ |
+| chatgpt-4o-latest | ✅ | ✅ | ❌ | ❌ | ✅ |
+
+## Configuration
+
+You can configure the OpenAI provider in several ways:
+
+```python
+from ai_sdk.openai import create_openai_provider, OpenAIProviderSettings
+
+provider = create_openai_provider(
+    settings=OpenAIProviderSettings(
+        api_key="your-api-key",  # Optional: can also use OPENAI_API_KEY env var
+        organization="your-org-id",  # Optional: for enterprise customers
+        project="your-project",  # Optional: for project tracking
+        base_url="https://api.openai.com"  # Optional: defaults to OpenAI's API
+    )
+)
+
+model = provider("gpt-4")
+```
+
+### Authentication
+
+The provider will look for your API key in the following order:
+1. The `api_key` parameter in settings
+2. The `OPENAI_API_KEY` environment variable
+
+<Callout type="warning">
+  Never hardcode your API key in your code. Use environment variables instead.
+</Callout>
+
+### Custom Headers
+
+You can add custom headers to all requests:
+
+```python
+provider = create_openai_provider(
+    settings=OpenAIProviderSettings(
+        headers={
+            "Custom-Header": "value"
+        }
+    )
+)
+```
+
+### Using Alternative Base URLs
+
+If you're using Azure OpenAI or a proxy, you can change the base URL:
+
+```python
+provider = create_openai_provider(
+    settings=OpenAIProviderSettings(
+        base_url="https://your-custom-endpoint.com"
+    )
+)
+```
+
+## Model Settings
+
+When creating a model, you can customize its behavior:
+
+```python
+from ai_sdk.openai import openai, OpenAIChatSettings
+
+model = openai(
+    "gpt-4", 
+    settings=OpenAIChatSettings(
+        # Add model-specific settings here
+    )
+)
+```
+
+## Working with Images
+
+For models that support image input:
+
+```python
+response = generate_text(
+    model=openai("gpt-4o"),
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "What's in this image?"},
+            {"type": "image", "image": "https://example.com/image.jpg"}
+        ]
+    }]
+)
+```
+
+## Using Tool Calls
+
+Tools can be defined using Pydantic models and optional execution functions:
+
+```python
+from pydantic import BaseModel
+from ai_sdk import generate_text
+from typing import Dict
+
+class WeatherTool(BaseModel):
+    location: str
+    units: str = "celsius"
+
+# Define tools with optional execution functions
+tools: Dict[str, dict] = {
+    "weather": {
+        "description": "Get the weather in a location",
+        "parameters": WeatherTool,
+        "execute": lambda args: {
+            "temperature": 22,
+            "condition": "sunny"
+        }
+    }
+}
+
+response = generate_text(
+    model=openai("gpt-4o"),
+    prompt="What's the weather in Paris?",
+    tools=tools,
+    max_steps=2  # Allow multiple steps for tool execution
+)
+
+# Access results
+print(response.text)  # Final response
+print(response.tool_calls)  # List of tool calls made
+print(response.tool_results)  # List of tool results
+```
+
+The response includes:
+- `text`: The final generated text
+- `tool_calls`: List of `ToolCallPart` objects containing:
+  - `tool_call_id`: Unique identifier for the call
+  - `tool_name`: Name of the tool called
+  - `args`: Dictionary of arguments passed
+- `tool_results`: List of `ToolResultPart` objects containing:
+  - `tool_call_id`: Matching ID from the call
+  - `tool_name`: Name of the tool
+  - `result`: The result returned
+  - `is_error`: Optional error flag
+
+<Callout type="info">
+  When `max_steps` is greater than 1, the model can make tool calls and use the results in its final response.
+</Callout>
