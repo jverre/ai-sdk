@@ -1,0 +1,204 @@
+import { Steps, Tabs, Callout } from 'nextra/components'
+
+# Text Generation
+
+When using LLMs, the most common task is to generate text. For this, the Python AI SDK provides a simple `generate_text` function.
+
+## Getting started
+
+### Using prompts
+
+The simplest way to generate text is to pass in a prompt and a model. For example:
+
+```python
+from ai_sdk import generate_text
+from ai_sdk.openai import openai
+
+response = generate_text(
+    model=openai("gpt-4"),
+    prompt="Hello, world!"
+)
+
+print(response.text)
+```
+
+### Adding a system prompt
+
+System prompts allow you to guide your LLM to behave in a specific way. You can pass in a system prompt by setting the `system` parameter:
+
+```python
+from ai_sdk import generate_text
+from ai_sdk.openai import openai
+
+response = generate_text(
+    model=openai("gpt-4"),
+    system="You are a helpful assistant.",
+    prompt="Hello, world!",
+)
+```
+
+## Understanding the Response
+
+The `generate_text` function returns a `TextResult` object which contains comprehensive information about the generation:
+
+```python
+class TextResult:
+    text: str                    # The generated text response
+    finish_reason: FinishReason  # Why the generation stopped (length, stop token, etc)
+    usage: Usage                 # Token usage statistics
+    tool_calls: List[ToolCall]   # Any tool calls made during generation
+    tool_results: List[Result]   # Results from tool calls
+    request: RequestMetadata     # Information about the request
+    response: ResponseMetadata   # Information about the response
+    warnings: List[Warning]      # Any warnings generated
+    provider_metadata: Dict      # Provider-specific metadata
+```
+
+<Tabs items={['Basic Usage', 'With Usage Info']}>
+  <Tabs.Tab>
+    ```python
+    response = generate_text(
+        model=openai("gpt-4"),
+        prompt="What is the capital of France?"
+    )
+    print(response.text)  # "The capital of France is Paris."
+    print(response.finish_reason)  # "stop"
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```python
+    response = generate_text(
+        model=openai("gpt-4"),
+        prompt="Explain quantum computing"
+    )
+    print(f"Prompt tokens: {response.usage.prompt_tokens}")
+    print(f"Completion tokens: {response.usage.completion_tokens}")
+    print(f"Total tokens: {response.usage.total_tokens}")
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+<Callout type="info">
+  The `provider_metadata` field contains additional information specific to each provider. For example, OpenAI might include model-specific parameters while Anthropic might include different metadata.
+</Callout>
+
+## Going beyond simple prompts with messages
+
+While the `prompt` parameter is useful for simple tasks, it is often better to pass in a list of messages for more complex interactions:
+
+```python
+from ai_sdk import generate_text
+from ai_sdk.openai import openai
+
+response = generate_text(
+    model=openai("gpt-4"),
+    messages=[
+        {"role": "user", "content": "Hello, world!"}
+    ]
+)
+```
+
+### Message Types
+
+The Python AI SDK supports four different message types:
+
+- `system`: A system message that guides the behavior of the LLM
+- `user`: A user message that acts as a prompt
+- `assistant`: A message from the assistant
+- `tool`: A message from a tool
+
+#### System messages
+
+System messages (sometimes referred to as `system prompt` or `developer messages`) are used to guide the behavior of the LLM. They
+are typically used to set the tone or provide instructions for the LLM:
+
+```python
+from ai_sdk import generate_text
+from ai_sdk.openai import openai
+
+response = generate_text(
+    model=openai("gpt-4"),
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Hello, world!"}
+    ]
+)
+```
+
+#### User messages
+
+User messages support both text and image content:
+
+<Tabs items={['Simple text', 'Multiple content', 'Image']}>
+  <Tabs.Tab>
+    ```python
+    response = generate_text(
+        model=openai("gpt-4"),
+        messages=[{"role": "user", "content": "Hello, world!"}]
+    )
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```python
+    response = generate_text(
+        model=openai("gpt-4"),
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "Hello, world!"},
+                {"type": "text", "text": "This is a test."}
+            ]
+        }]
+    )
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```python
+    response = generate_text(
+        model=openai("gpt-4"),
+        messages=[{
+            "role": "user",
+            "content": [{
+                "type": "image",
+                "image": "https://example.com/image.jpg"
+            }]
+        }]
+    )
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+#### Assistant messages
+
+Assistant messages represent responses from the LLM, useful for maintaining conversation context:
+
+```python
+response = generate_text(
+    model=openai("gpt-4"),
+    messages=[
+        {"role": "user", "content": "Hello, world!"},
+        {"role": "assistant", "content": "Hi, how can I help you today?"},
+        {"role": "user", "content": "What is your name?"}
+    ]
+)
+```
+
+#### Tool messages
+
+Tool messages contain results from tool calls and help provide context about previous tool interactions:
+
+```python
+response = generate_text(
+    model=openai("gpt-4"),
+    messages=[
+        {"role": "user", "content": "What's the weather like?"},
+        {"role": "tool", "content": {"temperature": 22, "condition": "sunny"}},
+        {"role": "assistant", "content": "The weather is sunny with a temperature of 22°C."}
+    ]
+)
+```
+
+<Callout type="warning">
+  Not all providers support all message types. Check the provider's documentation for supported message types.
+</Callout>
+

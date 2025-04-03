@@ -1,0 +1,21 @@
+{
+  "scripts": {
+    "dev": "next",
+    "build": "next build",
+    "start": "next start",
+    "export": "next build && next export -o out",
+    "deploy": "touch out/.nojekyll && gh-pages -d out -t true"
+  },
+  "dependencies": {
+    "next": "^15.2.4",
+    "nextra": "^4.2.17",
+    "nextra-theme-docs": "^4.2.17",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-icons": "^5.5.0",
+    "typescript": "^5.8.2"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
+  }
+}
