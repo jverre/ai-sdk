@@ -11,6 +11,8 @@
 
 A unified interface for working with different AI language model providers. Built with clean architecture and support for many providers
 
+📚 [View the full documentation](https://jverre.github.io/ai-sdk/)
+
 ## Installation
 
 ```bash
