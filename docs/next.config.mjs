@@ -1,8 +1,7 @@
 import nextra from 'nextra'
  
 const withNextra = nextra({
-  theme: 'nextra-theme-docs',
-  themeConfig: './theme.config.jsx'
+  // ... Other Nextra config options
 })
  
 // You can include other Next.js configuration options here, in addition to Nextra settings:
