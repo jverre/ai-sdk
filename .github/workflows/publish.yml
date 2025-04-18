@@ -39,7 +39,7 @@ jobs:
         git config --local user.name "GitHub Action"
         git add src/ai_sdk/__init__.py
         git commit -m "chore: bump version to ${{ steps.get_version.outputs.VERSION }}"
-        git push
+        git push origin HEAD:main
     
     - name: Install uv
       run: |
