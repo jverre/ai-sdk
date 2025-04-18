@@ -16,7 +16,7 @@ A unified interface for working with different AI language model providers. Buil
 ## Installation
 
 ```bash
-pip install ai-sdk
+pip install ai-sdk-py
 ```
 
 ## Quick Start
