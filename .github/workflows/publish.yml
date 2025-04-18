@@ -48,7 +48,7 @@ jobs:
     
     - name: Create virtual environment
       run: |
-        uv venv create
+        uv venv
 
     - name: Install dependencies
       run: |
