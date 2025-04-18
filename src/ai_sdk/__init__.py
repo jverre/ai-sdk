@@ -6,4 +6,4 @@ is_opik_configured()
 
 __all__ = ["generate_text", "generate_object"]
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
