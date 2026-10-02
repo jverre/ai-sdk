@@ -9,6 +9,12 @@
 
 # AI SDK
 
+> [!WARNING]
+> **This project is archived and no longer maintained.**
+> Use Vercel's official [AI SDK for Python](https://ai-python.dev/docs) instead
+> (`pip install ai`, source at [vercel-labs/ai-python](https://github.com/vercel-labs/ai-python)).
+> The `ai-sdk-py` package on PyPI will not receive further updates.
+
 A unified interface for working with different AI language model providers. Built with clean architecture and support for many providers
 
 📚 [View the full documentation](https://jverre.github.io/ai-sdk/)
